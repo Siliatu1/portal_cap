@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import "./admin_panel.css";
+import "../styles/admin_panel.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import FormularioInscripcion from "./FormularioInscripcion";
 import FormularioPuntoVenta from "./FormularioPuntoVenta";
@@ -13,8 +13,25 @@ import * as XLSX from 'xlsx';
 import { createCapInstructora, deleteCapCafe, deleteCapTodera, getCapCafes, getCapInstructoras, getCapPdvById, getCapPdvs, getCapToderas, updateCapInstructora, updateCapPdv } from '../../../services/apiService';
 import { fetchBukEmpleadoByDocumento } from '../../../services/bukEmpleadosQuery';
 import { useAuth } from '../../../shared/context/AuthContext';
-
-const ADMIN_PANEL_CACHE_KEY = 'lineasProductoAdminPanel';
+import {
+  ADMIN_PANEL_CACHE_KEY,
+  buildGestionInstructorasRows,
+  filterDataByRole,
+  filterEvaluacionesTodera,
+  filterGestionInstructoras,
+  filterInscripciones,
+  getRoleFlags,
+  getVistaInicial,
+  INITIAL_FILTROS,
+  INITIAL_FILTROS_GESTION,
+  INITIAL_FILTROS_TODERA,
+  INITIAL_FORM_GESTION,
+  INITIAL_FORM_NUEVA_INSTRUCTORA,
+  mapCapCafeItem,
+  mapInstructoraDisponible,
+  mapToderaItem,
+  puedeEliminarPorCargo,
+} from './adminPanel.helpers';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -24,33 +41,18 @@ const AdminPanel = () => {
   const datosUsuario = userData?.data || userData || {};
   const cargoUsuarioInicial = datosUsuario.cargo || '';
   const puntoVentaUsuarioActual = datosUsuario.area_nombre || '';
-  const rolesPuntoVentaCheck = [
-    'ADMINISTRADORA PUNTO DE VENTA',
-    'COORDINADOR PUNTO DE VENTA',
-    'COORDINADOR PUNTO DE VENTA (FDS)',
-    'GERENTE PUNTO DE VENTA'
-  ];
-  const vistaInicial = rolesPuntoVentaCheck.includes(cargoUsuarioInicial) ? "seleccion_menu" : "panel";
+  const vistaInicial = getVistaInicial(cargoUsuarioInicial);
   
   const [showFormulario, setShowFormulario] = useState(false);
   const [tipoFormulario, setTipoFormulario] = useState(""); 
   const [vistaActual, setVistaActual] = useState(vistaInicial); 
   const [inscripciones, setInscripciones] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filtros, setFiltros] = useState({
-    cedula: '',
-    puntoVenta: '',
-    fecha: ''
-  });
+  const [filtros, setFiltros] = useState(INITIAL_FILTROS);
   const [dataFiltrada, setDataFiltrada] = useState([]);
   const [inscripcionesTodera, setInscripcionesTodera] = useState([]);
   const [loadingTodera, setLoadingTodera] = useState(false);
-  const [filtrosTodera, setFiltrosTodera] = useState({
-    cedula: '',
-    puntoVenta: '',
-    fecha: '',
-    instructora: ''
-  });
+  const [filtrosTodera, setFiltrosTodera] = useState(INITIAL_FILTROS_TODERA);
   const [dataFiltradaTodera, setDataFiltradaTodera] = useState([]);
   const tabActivo = 'todos';
   const [seccionActiva, setSeccionActiva] = useState('escuela_cafe'); // 'escuela_cafe' o 'evaluacion_todera'
@@ -64,26 +66,9 @@ const AdminPanel = () => {
   const [modalGestionVisible, setModalGestionVisible] = useState(false);
   const [modalNuevaInstructoraVisible, setModalNuevaInstructoraVisible] = useState(false);
   const [loadingNuevaInstructora, setLoadingNuevaInstructora] = useState(false);
-  const [formGestion, setFormGestion] = useState({
-    pdvId: '',
-    categoria: '',
-    instructoraId: ''
-  });
-  const [formNuevaInstructora, setFormNuevaInstructora] = useState({
-    documento: '',
-    nombre: '',
-    telefono: '',
-    correo: '',
-    sal: false,
-    dulce: false,
-    bebidas: false,
-    brunch: false,
-    habilitado: true
-  });
-  const [filtrosGestionInstructoras, setFiltrosGestionInstructoras] = useState({
-    puntoVenta: '',
-    categoria: ''
-  });
+  const [formGestion, setFormGestion] = useState(INITIAL_FORM_GESTION);
+  const [formNuevaInstructora, setFormNuevaInstructora] = useState(INITIAL_FORM_NUEVA_INSTRUCTORA);
+  const [filtrosGestionInstructoras, setFiltrosGestionInstructoras] = useState(INITIAL_FILTROS_GESTION);
   const [fotosCache, setFotosCache] = useState({});
   const fotosCacheRef = useRef({});
   const fotosSolicitadasRef = useRef(new Set());
@@ -91,70 +76,18 @@ const AdminPanel = () => {
 
 
   const nombreUsuario = datosUsuario.nombre || '';
-
-  const rolesHeladeria = [
-    'COORDINADORA HELADERIA',
-    'COORDINADOR DE ZONA',
-    'COORDINADOR (A) HELADERIA PRINCIPAL'
-  ];
-
-  const rolesPuntoVenta = [
-    'ADMINISTRADORA PUNTO DE VENTA',
-    'COORDINADOR PUNTO DE VENTA',
-    'COORDINADOR PUNTO DE VENTA (FDS)',
-    'GERENTE PUNTO DE VENTA'
-  ];
-
-  
-  const rolesVerTodo = [
-    'ANALISTA EVENTOS Y HELADERIAS',
-    'JEFE OPERATIVO DE MERCADEO',
-    'JEFE DESARROLLO DE PRODUCTO',
-    'DIRECTORA DE LINEAS DE PRODUCTO',
-    'ANALISTA DE PRODUCTO',
-  ];
-
-
-  const rolesVerAmbasTablas = [
-    'ADMINISTRADORA PUNTO DE VENTA',
-    'COORDINADOR PUNTO DE VENTA',
-    'COORDINADOR PUNTO DE VENTA (FDS)',
-    'GERENTE PUNTO DE VENTA',
-    'JEFE OPERATIVO DE MERCADEO',
-    'JEFE DESARROLLO DE PRODUCTO',
-    'DIRECTORA DE LINEAS DE PRODUCTO',
-    'ANALISTA DE PRODUCTO',
-    'INSTRUCTOR'
-  ];
-
-  
-  const rolesAccesoDual = [
-    'JEFE DESARROLLO DE PRODUCTO',
-    'DIRECTORA DE LINEAS DE PRODUCTO',
-    'ANALISTA DE PRODUCTO',
-  ];
-
-
-  const cargosRestringidos = [
-    'ADMINISTRADORA PUNTO DE VENTA',
-    'COORDINADOR (A) HELADERIA PRINCIPAL',
-    'COORDINADOR PUNTO DE VENTA',
-    'COORDINADOR PUNTO DE VENTA (FDS)',
-    'GERENTE PUNTO DE VENTA',
-    'COORDINADORA HELADERIA',
-    'COORDINADOR DE ZONA'
-  ];
-
-  const esRolPuntoVenta = rolesPuntoVenta.includes(cargoUsuarioInicial);
-  const esRolHeladeria = rolesHeladeria.includes(cargoUsuarioInicial);
-  const esAccesoDual = rolesAccesoDual.includes(cargoUsuarioInicial);
-  const puedeVerTodo = rolesVerTodo.includes(cargoUsuarioInicial);
-  const puedeVerAmbasTablas = rolesVerAmbasTablas.includes(cargoUsuarioInicial);
+  const {
+    esRolPuntoVenta,
+    esRolHeladeria,
+    esAccesoDual,
+    puedeVerTodo,
+    puedeVerAmbasTablas,
+  } = getRoleFlags(cargoUsuarioInicial);
 
  
   const puedeEliminar = () => {
     if (!userData) return false;
-    return !cargosRestringidos.includes(cargoUsuarioInicial);
+    return puedeEliminarPorCargo(cargoUsuarioInicial);
   };
 
   const getStrapiJsonHeaders = () => {
@@ -191,42 +124,15 @@ const AdminPanel = () => {
       let dataArray = [];
       if (result && Array.isArray(result.data)) {
 
-        dataArray = result.data.map(item => {
-          const mapped = {
-            id: item.id,
-            cedula: item.attributes?.documento || '',
-            nombres: item.attributes?.nombre || '',
-            telefono: item.attributes?.telefono || '',
-            cargo: item.attributes?.cargo || '',
-            puntoVenta: item.attributes?.pdv || '',
-            dia: item.attributes?.fecha || '',
-            coordinadora: item.attributes?.coordinadora || '',
-            nombreLider: item.attributes?.lider || '',
-            tipoFormulario: item.attributes?.tipo_formulario || '',
-            asistencia: item.attributes?.confirmado ?? null
-          };
-          return mapped;
-        });
+        dataArray = result.data.map(mapCapCafeItem);
       }
         
-      let dataFiltradaPorRol = dataArray;
-        
-
-      if (puedeVerTodo) {
-        dataFiltradaPorRol = dataArray;
-      } 
-
-      else if (esRolHeladeria || esRolPuntoVenta) {
-        dataFiltradaPorRol = dataArray.filter(item => {
-          const pdvItem = item.puntoVenta || '';
-          const coincide = pdvItem === puntoVentaUsuarioActual;
-          return coincide;
-        });
-      }
-
-      else {
-        dataFiltradaPorRol = dataArray;
-      }
+      const dataFiltradaPorRol = filterDataByRole(dataArray, {
+        puedeVerTodo,
+        esRolHeladeria,
+        esRolPuntoVenta,
+        puntoVentaUsuarioActual,
+      });
         
 
       setInscripciones(dataFiltradaPorRol);
@@ -261,34 +167,15 @@ const AdminPanel = () => {
       const result = await getCapToderas();
       let dataArray = [];
       if (result && Array.isArray(result.data)) {
-        dataArray = result.data.map(item => ({
-          id: item.id,
-          cedula: item.attributes?.documento || '',
-          nombres: item.attributes?.nombre || item.attributes?.Nombre || '',
-          telefono: item.attributes?.telefono || '',
-          cargo: item.attributes?.cargo || '',
-          cargoEvaluar: item.attributes?.cargo_evaluar || item.attributes?.cargoEvaluar || '',
-          puntoVenta: item.attributes?.pdv || '',
-          dia: item.attributes?.fecha || '',
-          nombreLider: item.attributes?.lider || '',
-          categoria: item.attributes?.categoria || '',
-          evaluado: item.attributes?.estado ?? null,
-          observacion: item.attributes?.observacion || '',
-        }));
+        dataArray = result.data.map(mapToderaItem);
       }
 
-      let dataFiltradaPorRol = dataArray;
-
-      if (puedeVerTodo) {
-        dataFiltradaPorRol = dataArray;
-      } else if (esRolHeladeria || esRolPuntoVenta) {
-        dataFiltradaPorRol = dataArray.filter(item => {
-          const pdvItem = item.puntoVenta || '';
-          return pdvItem === puntoVentaUsuarioActual;
-        });
-      } else {
-        dataFiltradaPorRol = dataArray;
-      }
+      const dataFiltradaPorRol = filterDataByRole(dataArray, {
+        puedeVerTodo,
+        esRolHeladeria,
+        esRolPuntoVenta,
+        puntoVentaUsuarioActual,
+      });
 
       setInscripcionesTodera(dataFiltradaPorRol);
       setDataFiltradaTodera(dataFiltradaPorRol);
@@ -436,34 +323,7 @@ const AdminPanel = () => {
 
 
   const aplicarFiltros = useCallback(() => {
-    let dataTemp = [...inscripciones];
-
-    // Filtrar por tab activo
-    if (tabActivo === 'hel') {
-      dataTemp = dataTemp.filter(item => item.tipoFormulario === 'heladeria');
-    } else if (tabActivo === 'pdv') {
-      dataTemp = dataTemp.filter(item => item.tipoFormulario === 'punto_venta');
-    }
-
-    if (filtros.cedula) {
-      dataTemp = dataTemp.filter(item => 
-        item.cedula && item.cedula.toString().includes(filtros.cedula)
-      );
-    }
-
-    if (filtros.puntoVenta) {
-      dataTemp = dataTemp.filter(item => 
-        item.puntoVenta && item.puntoVenta.toLowerCase().includes(filtros.puntoVenta.toLowerCase())
-      );
-    }
-
-    if (filtros.fecha) {
-      dataTemp = dataTemp.filter(item => 
-        item.dia && item.dia === filtros.fecha
-      );
-    }
-
-    setDataFiltrada(dataTemp);
+    setDataFiltrada(filterInscripciones(inscripciones, filtros, tabActivo));
   }, [filtros, inscripciones, tabActivo]);
 
 
@@ -473,38 +333,12 @@ const AdminPanel = () => {
 
 
   const limpiarFiltros = () => {
-    setFiltros({ cedula: '', puntoVenta: '', fecha: '' });
+    setFiltros(INITIAL_FILTROS);
   };
 
   // Aplicar filtros todera
   const aplicarFiltrosTodera = useCallback(() => {
-    let dataTemp = [...inscripcionesTodera];
-
-    if (filtrosTodera.cedula) {
-      dataTemp = dataTemp.filter(item => 
-        item.cedula && item.cedula.toString().includes(filtrosTodera.cedula)
-      );
-    }
-
-    if (filtrosTodera.puntoVenta) {
-      dataTemp = dataTemp.filter(item => 
-        item.puntoVenta && item.puntoVenta.toLowerCase().includes(filtrosTodera.puntoVenta.toLowerCase())
-      );
-    }
-
-    if (filtrosTodera.fecha) {
-      dataTemp = dataTemp.filter(item => 
-        item.dia && item.dia === filtrosTodera.fecha
-      );
-    }
-
-    if (filtrosTodera.instructora) {
-      dataTemp = dataTemp.filter(item => 
-        item.nombreLider && item.nombreLider.toLowerCase().includes(filtrosTodera.instructora.toLowerCase())
-      );
-    }
-
-    setDataFiltradaTodera(dataTemp);
+    setDataFiltradaTodera(filterEvaluacionesTodera(inscripcionesTodera, filtrosTodera));
   }, [filtrosTodera, inscripcionesTodera]);
 
   useEffect(() => {
@@ -512,7 +346,7 @@ const AdminPanel = () => {
   }, [aplicarFiltrosTodera]);
 
   const limpiarFiltrosTodera = () => {
-    setFiltrosTodera({ cedula: '', puntoVenta: '', fecha: '', instructora: '' });
+    setFiltrosTodera(INITIAL_FILTROS_TODERA);
   };
 
   const cargarGestionInstructoras = useCallback(async () => {
@@ -531,50 +365,7 @@ const AdminPanel = () => {
         result = await getCapPdvs('populate=*');
       }
       const data = Array.isArray(result?.data) ? result.data : [];
-      const filas = [];
-
-      data.forEach((pdvItem) => {
-        const pdvId = pdvItem?.id;
-        const pdvNombre = pdvItem?.attributes?.nombre || '';
-        const instructoras = pdvItem?.attributes?.cap_instructoras?.data || [];
-
-        const categoriaMap = {
-          sal: null,
-          dulce: null,
-          bebidas: null,
-          brunch: null
-        };
-
-        instructoras.forEach((insItem) => {
-          const attrs = insItem?.attributes || {};
-          const nombreInstructora = attrs?.Nombre || attrs?.nombre || 'Sin nombre';
-          const instructoraId = insItem.id;
-
-          if (attrs.sal === true) {
-            categoriaMap.sal = { instructoraId, instructoraNombre: nombreInstructora };
-          }
-          if (attrs.dulce === true) {
-            categoriaMap.dulce = { instructoraId, instructoraNombre: nombreInstructora };
-          }
-          if (attrs.bebidas === true) {
-            categoriaMap.bebidas = { instructoraId, instructoraNombre: nombreInstructora };
-          }
-          if (attrs.brunch === true || attrs.Brunch === true) {
-            categoriaMap.brunch = { instructoraId, instructoraNombre: nombreInstructora };
-          }
-        });
-
-        filas.push({
-          key: `${pdvId}`,
-          pdvId,
-          puntoVenta: pdvNombre,
-          sal: categoriaMap.sal,
-          dulce: categoriaMap.dulce,
-          bebidas: categoriaMap.bebidas,
-          brunch: categoriaMap.brunch,
-          instructorasIds: instructoras.map(i => i.id)
-        });
-      });
+      const filas = buildGestionInstructorasRows(data);
 
       setGestionInstructoras(filas);
       setDataFiltradaGestionInstructoras(filas);
@@ -601,11 +392,7 @@ const AdminPanel = () => {
     try {
       const result = await getCapInstructoras();
       const data = Array.isArray(result?.data) ? result.data : [];
-      const instructoras = data.map((item) => ({
-        id: item.id,
-        nombre: item?.attributes?.Nombre || item?.attributes?.nombre || `Instructora ${item.id}`,
-        habilitado: item?.attributes?.habilitado !== false
-      }));
+      const instructoras = data.map(mapInstructoraDisponible);
       setInstructorasDisponibles(instructoras);
       setSessionCacheValue(ADMIN_PANEL_CACHE_KEY, (prev = {}) => ({
         ...prev,
@@ -633,13 +420,7 @@ const AdminPanel = () => {
   }, [vistaActual, puedeVerAmbasTablas, esAccesoDual, cargarGestionInstructoras, cargarInstructorasDisponibles, cargarInscripciones, cargarInscripcionesTodera]);
 
   const aplicarFiltrosGestionInstructoras = useCallback(() => {
-    let dataTemp = [...gestionInstructoras];
-
-    if (filtrosGestionInstructoras.puntoVenta) {
-      dataTemp = dataTemp.filter((item) => item.puntoVenta.toLowerCase().includes(filtrosGestionInstructoras.puntoVenta.toLowerCase()));
-    }
-
-    setDataFiltradaGestionInstructoras(dataTemp);
+    setDataFiltradaGestionInstructoras(filterGestionInstructoras(gestionInstructoras, filtrosGestionInstructoras));
   }, [filtrosGestionInstructoras.puntoVenta, gestionInstructoras]);
 
   useEffect(() => {
@@ -647,7 +428,7 @@ const AdminPanel = () => {
   }, [aplicarFiltrosGestionInstructoras]);
 
   const limpiarFiltrosGestionInstructoras = () => {
-    setFiltrosGestionInstructoras({ puntoVenta: '', categoria: '' });
+    setFiltrosGestionInstructoras(INITIAL_FILTROS_GESTION);
   };
 
   const cargarInstructorasPorCategoria = async (categoria) => {
@@ -684,17 +465,7 @@ const AdminPanel = () => {
   };
 
   const resetFormNuevaInstructora = () => {
-    setFormNuevaInstructora({
-      documento: '',
-      nombre: '',
-      telefono: '',
-      correo: '',
-      sal: false,
-      dulce: false,
-      bebidas: false,
-      brunch: false,
-      habilitado: true
-    });
+    setFormNuevaInstructora(INITIAL_FORM_NUEVA_INSTRUCTORA);
   };
 
   const crearInstructora = async () => {
@@ -869,7 +640,8 @@ const AdminPanel = () => {
       message.warning('No hay datos para exportar');
       return;
     }
-
+    
+    // todera
     const datosExportar = dataFiltradaTodera.map((item, index) => ({
       'No.': index + 1,
       'Cédula': item.cedula || '',

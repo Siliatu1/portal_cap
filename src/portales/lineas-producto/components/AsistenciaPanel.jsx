@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import "./admin_panel.css";
+import "../styles/admin_panel.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { Table, Input, Button, Space, message, Select, Switch } from "antd";
 import { SearchOutlined, DownloadOutlined } from '@ant-design/icons';
