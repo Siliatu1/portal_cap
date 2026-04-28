@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from '@tanstack/react-query';
 import "./admin_panel.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import FormularioInscripcion from "./FormularioInscripcion";
@@ -9,14 +10,20 @@ import EvaluacionTodera from "./EvaluacionTodera";
 import { Table, Input, Button, Space, message, Popconfirm, Select, Modal, Switch, Tag, Tooltip } from "antd";
 import { SearchOutlined, DownloadOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
-import { createCapInstructora, deleteCapCafe, deleteCapTodera, getBukEmpleadosByDocumento, getCapCafes, getCapInstructoras, getCapPdvById, getCapPdvs, getCapToderas, updateCapInstructora, updateCapPdv } from '../../../services/apiService';
+import { createCapInstructora, deleteCapCafe, deleteCapTodera, getCapCafes, getCapInstructoras, getCapPdvById, getCapPdvs, getCapToderas, updateCapInstructora, updateCapPdv } from '../../../services/apiService';
+import { fetchBukEmpleadoByDocumento } from '../../../services/bukEmpleadosQuery';
+import { useAuth } from '../../../shared/context/AuthContext';
 
-const AdminPanel = ({ userData, onLogout }) => {
+const ADMIN_PANEL_CACHE_KEY = 'lineasProductoAdminPanel';
+
+const AdminPanel = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { userData, logout, sessionCache, setSessionCacheValue } = useAuth();
   const strapiToken = import.meta.env.VITE_STRAPI_TOKEN;
   const datosUsuario = userData?.data || userData || {};
-  const cargoUsuarioInicial = datosUsuario.cargo_general || datosUsuario.cargo || datosUsuario.position || '';
-  const puntoVentaUsuarioActual = datosUsuario.area_nombre || datosUsuario.department || '';
+  const cargoUsuarioInicial = datosUsuario.cargo || '';
+  const puntoVentaUsuarioActual = datosUsuario.area_nombre || '';
   const rolesPuntoVentaCheck = [
     'ADMINISTRADORA PUNTO DE VENTA',
     'COORDINADOR PUNTO DE VENTA',
@@ -80,13 +87,10 @@ const AdminPanel = ({ userData, onLogout }) => {
   const [fotosCache, setFotosCache] = useState({});
   const fotosCacheRef = useRef({});
   const fotosSolicitadasRef = useRef(new Set());
+  const adminPanelCache = sessionCache?.[ADMIN_PANEL_CACHE_KEY] || null;
 
 
-  const nombreUsuario = datosUsuario.nombre || 
-    datosUsuario.name ||
-    (datosUsuario.first_name && datosUsuario.last_name 
-      ? `${datosUsuario.first_name} ${datosUsuario.last_name}`.trim()
-      : datosUsuario.full_name || '');
+  const nombreUsuario = datosUsuario.nombre || '';
 
   const rolesHeladeria = [
     'COORDINADORA HELADERIA',
@@ -173,6 +177,12 @@ const AdminPanel = ({ userData, onLogout }) => {
    * - Roles de heladería/punto de venta ven solo su PDV
    */
   const cargarInscripciones = useCallback(async () => {
+    if (adminPanelCache?.inscripciones) {
+      setInscripciones(adminPanelCache.inscripciones);
+      setDataFiltrada(adminPanelCache.inscripciones);
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await getCapCafes();
@@ -221,6 +231,10 @@ const AdminPanel = ({ userData, onLogout }) => {
 
       setInscripciones(dataFiltradaPorRol);
       setDataFiltrada(dataFiltradaPorRol);
+              setSessionCacheValue(ADMIN_PANEL_CACHE_KEY, (prev = {}) => ({
+                ...prev,
+                inscripciones: dataFiltradaPorRol,
+              }));
     } catch {
 
       setInscripciones([]);
@@ -228,7 +242,7 @@ const AdminPanel = ({ userData, onLogout }) => {
     } finally {
       setLoading(false);
     }
-  }, [esRolHeladeria, esRolPuntoVenta, puedeVerTodo, puntoVentaUsuarioActual]);
+  }, [adminPanelCache?.inscripciones, esRolHeladeria, esRolPuntoVenta, puedeVerTodo, puntoVentaUsuarioActual, setSessionCacheValue]);
 
 
   /**
@@ -236,6 +250,12 @@ const AdminPanel = ({ userData, onLogout }) => {
    * Aplica los mismos filtros de permisos que cargarInscripciones
    */
   const cargarInscripcionesTodera = useCallback(async () => {
+    if (adminPanelCache?.inscripcionesTodera) {
+      setInscripcionesTodera(adminPanelCache.inscripcionesTodera);
+      setDataFiltradaTodera(adminPanelCache.inscripcionesTodera);
+      return;
+    }
+
     setLoadingTodera(true);
     try {
       const result = await getCapToderas();
@@ -272,25 +292,24 @@ const AdminPanel = ({ userData, onLogout }) => {
 
       setInscripcionesTodera(dataFiltradaPorRol);
       setDataFiltradaTodera(dataFiltradaPorRol);
+      setSessionCacheValue(ADMIN_PANEL_CACHE_KEY, (prev = {}) => ({
+        ...prev,
+        inscripcionesTodera: dataFiltradaPorRol,
+      }));
     } catch {
       setInscripcionesTodera([]);
       setDataFiltradaTodera([]);
     } finally {
       setLoadingTodera(false);
     }
-  }, [esRolHeladeria, esRolPuntoVenta, puedeVerTodo, puntoVentaUsuarioActual]);
+  }, [adminPanelCache?.inscripcionesTodera, esRolHeladeria, esRolPuntoVenta, puedeVerTodo, puntoVentaUsuarioActual, setSessionCacheValue]);
 
   // Función para cargar foto de empleado desde API de BUK
   const cargarFotoEmpleado = useCallback(async (cedula) => {
     if (!cedula || fotosCacheRef.current[cedula]) return fotosCacheRef.current[cedula];
     
     try {
-      const data = await getBukEmpleadosByDocumento(cedula);
-      const empleados = data?.data || data;
-      const empleado = Array.isArray(empleados) 
-        ? empleados.find(emp => String(emp.document_number) === String(cedula))
-        : null;
-      
+      const empleado = await fetchBukEmpleadoByDocumento(queryClient, cedula);
       const foto = empleado?.foto || '';
       setFotosCache(prev => {
         const nextState = { ...prev, [cedula]: foto };
@@ -302,7 +321,7 @@ const AdminPanel = ({ userData, onLogout }) => {
       console.error('Error al cargar foto:', error);
     }
     return '';
-  }, []);
+  }, [queryClient]);
 
   const cedulasVisiblesSinFoto = useMemo(() => {
     const cedulas = new Set();
@@ -370,7 +389,7 @@ const AdminPanel = ({ userData, onLogout }) => {
   const handleVolverDesdeSeleccion = () => {
     if (esRolPuntoVenta) {
       // Para roles de punto de venta, volver al menú de selección es cerrar sesión
-      onLogout();
+      logout();
     } else {
       setVistaActual("panel");
     }
@@ -401,6 +420,10 @@ const AdminPanel = ({ userData, onLogout }) => {
     
    
     if (data && data.success) {
+      setSessionCacheValue(ADMIN_PANEL_CACHE_KEY, (prev = {}) => ({
+        ...prev,
+        inscripciones: null,
+      }));
       setShowFormulario(false);
       // Después de inscribir, mostrar el panel para todos
       setVistaActual("panel");
@@ -493,6 +516,12 @@ const AdminPanel = ({ userData, onLogout }) => {
   };
 
   const cargarGestionInstructoras = useCallback(async () => {
+    if (adminPanelCache?.gestionInstructoras) {
+      setGestionInstructoras(adminPanelCache.gestionInstructoras);
+      setDataFiltradaGestionInstructoras(adminPanelCache.gestionInstructoras);
+      return;
+    }
+
     setLoadingGestionInstructoras(true);
     try {
       let result;
@@ -549,6 +578,10 @@ const AdminPanel = ({ userData, onLogout }) => {
 
       setGestionInstructoras(filas);
       setDataFiltradaGestionInstructoras(filas);
+      setSessionCacheValue(ADMIN_PANEL_CACHE_KEY, (prev = {}) => ({
+        ...prev,
+        gestionInstructoras: filas,
+      }));
     } catch {
       message.error('Error al cargar gestión de instructoras');
       setGestionInstructoras([]);
@@ -556,9 +589,14 @@ const AdminPanel = ({ userData, onLogout }) => {
     } finally {
       setLoadingGestionInstructoras(false);
     }
-  }, []);
+  }, [adminPanelCache?.gestionInstructoras, setSessionCacheValue]);
 
   const cargarInstructorasDisponibles = useCallback(async () => {
+    if (adminPanelCache?.instructorasDisponibles) {
+      setInstructorasDisponibles(adminPanelCache.instructorasDisponibles);
+      return;
+    }
+
     setLoadingInstructorasDisponibles(true);
     try {
       const result = await getCapInstructoras();
@@ -569,13 +607,17 @@ const AdminPanel = ({ userData, onLogout }) => {
         habilitado: item?.attributes?.habilitado !== false
       }));
       setInstructorasDisponibles(instructoras);
+      setSessionCacheValue(ADMIN_PANEL_CACHE_KEY, (prev = {}) => ({
+        ...prev,
+        instructorasDisponibles: instructoras,
+      }));
     } catch {
       message.error('Error al cargar la lista de instructoras');
       setInstructorasDisponibles([]);
     } finally {
       setLoadingInstructorasDisponibles(false);
     }
-  }, []);
+  }, [adminPanelCache?.instructorasDisponibles, setSessionCacheValue]);
 
   useEffect(() => {
     if (vistaActual === "panel") {
@@ -708,6 +750,10 @@ const AdminPanel = ({ userData, onLogout }) => {
       message.success('Instructora creada exitosamente');
       setModalNuevaInstructoraVisible(false);
       resetFormNuevaInstructora();
+      setSessionCacheValue(ADMIN_PANEL_CACHE_KEY, (prev = {}) => ({
+        ...prev,
+        instructorasDisponibles: null,
+      }));
       cargarInstructorasDisponibles();
 
       if (formGestion.categoria) {
@@ -749,6 +795,11 @@ const AdminPanel = ({ userData, onLogout }) => {
 
       message.success('Instructora agregada exitosamente');
       setModalGestionVisible(false);
+      setSessionCacheValue(ADMIN_PANEL_CACHE_KEY, (prev = {}) => ({
+        ...prev,
+        gestionInstructoras: null,
+        instructorasDisponibles: null,
+      }));
       cargarGestionInstructoras();
       cargarInstructorasDisponibles();
     } catch (error) {
@@ -776,6 +827,10 @@ const AdminPanel = ({ userData, onLogout }) => {
       });
 
       message.success('Instructora eliminada del punto de venta');
+      setSessionCacheValue(ADMIN_PANEL_CACHE_KEY, (prev = {}) => ({
+        ...prev,
+        gestionInstructoras: null,
+      }));
       cargarGestionInstructoras();
     } catch (error) {
       message.error(error?.message || 'Error al eliminar instructora');
@@ -839,6 +894,10 @@ const AdminPanel = ({ userData, onLogout }) => {
     try {
       await deleteCapCafe(id);
       message.success('Inscripción eliminada exitosamente');
+      setSessionCacheValue(ADMIN_PANEL_CACHE_KEY, (prev = {}) => ({
+        ...prev,
+        inscripciones: null,
+      }));
       cargarInscripciones();
     } catch {
       message.error('Error de conexión al eliminar');
@@ -849,6 +908,10 @@ const AdminPanel = ({ userData, onLogout }) => {
     try {
       await deleteCapTodera(id);
       message.success('Evaluación eliminada exitosamente');
+      setSessionCacheValue(ADMIN_PANEL_CACHE_KEY, (prev = {}) => ({
+        ...prev,
+        inscripcionesTodera: null,
+      }));
       cargarInscripcionesTodera();
     } catch {
       message.error('Error de conexión al eliminar');
@@ -1009,7 +1072,7 @@ const AdminPanel = ({ userData, onLogout }) => {
     'ANALISTA DE PRODUCTO',
   ];
 
-  const cargoUsuarioActual = userData?.data?.cargo_general || userData?.cargo_general || userData?.cargo || '';
+  const cargoUsuarioActual = datosUsuario.cargo || '';
 
   const columnsToderaBase = [
     {
@@ -1416,7 +1479,7 @@ const AdminPanel = ({ userData, onLogout }) => {
             <i className="bi bi-arrow-left"></i>
             <span>Volver</span>
           </button>
-          <button className="btn-nav-header" onClick={onLogout}>
+          <button className="btn-nav-header" onClick={logout}>
             <i className="bi bi-box-arrow-right"></i>
           </button>
         </div>

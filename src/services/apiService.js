@@ -4,7 +4,7 @@ const API_BASES = {
 	holidays: 'https://date.nager.at/api/v3',
 };
 
-const BUK_EMPLEADOS_CACHE_PREFIX = 'buk_empleados3_';
+const BUK_EMPLEADOS_CACHE_PREFIX = 'buk_empleados3_v2_';
 const BUK_EMPLEADOS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const BUK_EMPLEADOS_AUDIT_KEY = '__bukEmpleados3Audit__';
 const bukEmpleadosPendingRequests = new Map();
@@ -192,8 +192,20 @@ export const request = async (endpoint, options = {}) => {
 	return responseBody;
 };
 
-export const loginByDocumento = (documento) =>
-	request(`/empleados2/${documento}`, { api: 'buk' });
+export const loginByDocumento = async (documento) => {
+	const response = await request(`/empleados3?documento=${encodeURIComponent(documento)}`, { api: 'buk' });
+	const empleados = Array.isArray(response?.data) ? response.data : [];
+	const empleado = empleados[0];
+
+	if (!empleado) {
+		const error = new Error('Empleado no encontrado');
+		error.status = 404;
+		error.response = response;
+		throw error;
+	}
+
+	return empleado;
+};
 
 export const getBukEmpleadosByDocumento = async (documento) => {
 	const normalizedDocumento = String(documento || '').trim();

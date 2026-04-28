@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./login.css";
 import { loginByDocumento } from "../services/apiService";
+import { useAuth } from "../shared/context/AuthContext";
 
-const Login = ({ onLogin }) => {
+const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [documento, setDocumento] = useState("");
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
@@ -23,18 +25,15 @@ const Login = ({ onLogin }) => {
       const rawData = await loginByDocumento(documento);
         
         // La API puede retornar { data: {...} } o directamente {...}
-        const data = rawData.data || rawData;
-        
-        // 💾 Guardar datos del usuario en localStorage para evitar peticiones adicionales
-        localStorage.setItem('userData', JSON.stringify(data));
+        const data = rawData;
         
         setMensaje({ texto: "Documento validado correctamente", tipo: "success" });
 
         setTimeout(() => {
-          onLogin(data);
+          login(data);
           
           // Determinar a dónde redirigir basado en el documento
-          const documentoUsuario = data?.document_number || data?.documento || '';
+          const documentoUsuario = data?.document_number || '';
           
           // Documentos autorizados para PanelToderas (instructoras de evaluación todera)
           const documentosToderas = [

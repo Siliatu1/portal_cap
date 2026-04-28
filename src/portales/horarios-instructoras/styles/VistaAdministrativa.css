@@ -126,6 +126,10 @@
   margin: 20px 40px !important;
 }
 
+.vista-admin-card-gap {
+  margin-bottom: 20px;
+}
+
 .vista-admin-container .ant-card:not(.filters-card) {
   margin: 0 40px 20px 40px;
 }
@@ -149,6 +153,242 @@
 .filters-card .ant-space-item label {
   font-weight: 600;
   color: #6B4E3D;
+}
+
+.vista-admin-week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.vista-admin-datepicker {
+  width: 140px;
+}
+
+.vista-admin-week-label {
+  font-weight: 700;
+  color: #6B4E3D;
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+.vista-admin-filters-layout {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.vista-admin-filter-label {
+  font-weight: 600;
+  color: #6B4E3D;
+}
+
+.vista-admin-select--linea {
+  min-width: 180px;
+}
+
+.vista-admin-select--instructora {
+  min-width: 250px;
+}
+
+.vista-admin-btn--excel {
+  background: #28a745;
+  border-color: #28a745;
+}
+
+.vista-admin-btn--pdf {
+  background: #AECE82;
+  border-color: #AECE82;
+}
+
+.vista-admin-day-header {
+  background: #4A7C59 !important;
+  color: white !important;
+  text-align: center !important;
+  font-weight: bold !important;
+}
+
+.vista-admin-subheader {
+  background: #5A8C6A !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.vista-admin-cell-text {
+  font-size: 12px;
+}
+
+.vista-admin-motivo-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.vista-admin-motivo-text {
+  flex: 1;
+}
+
+.vista-admin-edit-button {
+  color: #6B4E3D;
+  padding: 0;
+  min-width: 18px;
+  height: 18px;
+  font-size: 11px;
+}
+
+.vista-admin-time-text {
+  font-size: 11px;
+  color: #333;
+}
+
+.vista-admin-profile-content {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.vista-admin-profile-avatar {
+  margin: 0 auto 20px;
+}
+
+.vista-admin-profile-name {
+  margin: 0 0 10px;
+  color: #6B4E3D;
+  font-size: 24px;
+}
+
+.vista-admin-profile-text {
+  margin: 5px 0;
+  color: #666;
+}
+
+.vista-admin-form {
+  margin-top: 20px;
+}
+
+.vista-admin-link-button {
+  padding: 0;
+  margin-top: 8px;
+}
+
+.vista-admin-row--0 > td { background: #FFE4E4 !important; }
+.vista-admin-row--1 > td { background: #FFF5CC !important; }
+.vista-admin-row--2 > td { background: #E4F5D4 !important; }
+.vista-admin-row--3 > td { background: #D4EEF7 !important; }
+.vista-admin-row--4 > td { background: #EDE4F5 !important; }
+.vista-admin-row--5 > td { background: #FFE8D6 !important; }
+.vista-admin-row--6 > td { background: #D4F0E8 !important; }
+.vista-admin-row--7 > td { background: #F5D4E8 !important; }
+.vista-admin-row--8 > td { background: #D4DEFF !important; }
+.vista-admin-row--9 > td { background: #FFF0D4 !important; }
+.vista-admin-row--10 > td { background: #E8FFD4 !important; }
+.vista-admin-row--11 > td { background: #D4FFE8 !important; }
+.vista-admin-row--12 > td { background: #FFE0CC !important; }
+.vista-admin-row--13 > td { background: #CCE8FF !important; }
+.vista-admin-row--14 > td { background: #F0FFD4 !important; }
+
+.vista-admin-print {
+  font-family: Arial, sans-serif;
+  margin: 15px;
+  color: #333;
+  font-size: 10px;
+}
+
+.vista-admin-print__title {
+  color: #6B4E3D;
+  text-align: center;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.vista-admin-print__info {
+  margin-bottom: 12px;
+  color: #555;
+  font-size: 11px;
+  text-align: center;
+}
+
+.vista-admin-print__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.vista-admin-print__cell,
+.vista-admin-print__header-day,
+.vista-admin-print__header-sub,
+.vista-admin-print__header-instructora,
+.vista-admin-print__header-instructora-sub {
+  border: 1px solid #ccc;
+}
+
+.vista-admin-print__header-day {
+  background: #4A7C59;
+  color: white;
+  text-align: center;
+  padding: 6px;
+}
+
+.vista-admin-print__header-instructora {
+  background: #6B4E3D;
+  color: white;
+  padding: 6px;
+  text-align: center;
+}
+
+.vista-admin-print__header-instructora-sub {
+  background: #6B4E3D;
+  color: white;
+  padding: 5px;
+}
+
+.vista-admin-print__header-sub {
+  background: #5A8C6A;
+  color: white;
+  padding: 5px;
+}
+
+.vista-admin-print__cell {
+  padding: 5px;
+}
+
+.vista-admin-print__cell--number {
+  text-align: center;
+}
+
+.vista-admin-print__cell--name {
+  font-weight: 600;
+}
+
+.vista-admin-print__cell--time {
+  font-size: 10px;
+}
+
+.vista-admin-print__row--0 > td { background: #FFE4E4; }
+.vista-admin-print__row--1 > td { background: #FFF5CC; }
+.vista-admin-print__row--2 > td { background: #E4F5D4; }
+.vista-admin-print__row--3 > td { background: #D4EEF7; }
+.vista-admin-print__row--4 > td { background: #EDE4F5; }
+.vista-admin-print__row--5 > td { background: #FFE8D6; }
+.vista-admin-print__row--6 > td { background: #D4F0E8; }
+.vista-admin-print__row--7 > td { background: #F5D4E8; }
+.vista-admin-print__row--8 > td { background: #D4DEFF; }
+.vista-admin-print__row--9 > td { background: #FFF0D4; }
+.vista-admin-print__row--10 > td { background: #E8FFD4; }
+.vista-admin-print__row--11 > td { background: #D4FFE8; }
+.vista-admin-print__row--12 > td { background: #FFE0CC; }
+.vista-admin-print__row--13 > td { background: #CCE8FF; }
+.vista-admin-print__row--14 > td { background: #F0FFD4; }
+
+@media print {
+  .vista-admin-print {
+    margin: 8px;
+  }
+
+  .vista-admin-print tr {
+    page-break-inside: avoid;
+  }
 }
 
 /* Tabla de Ant Design personalizada */

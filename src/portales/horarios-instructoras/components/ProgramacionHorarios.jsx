@@ -4,9 +4,11 @@ import { Modal, Button } from 'antd';
 import 'antd/dist/reset.css';
 import '../styles/ProgramacionHorarios.css';
 import { createHorarioInstructora, getHorariosInstructoras, getPdvIps, updateHorarioInstructora } from '../../../services/apiService';
+import { useAuth } from '../../../shared/context/AuthContext';
 
-function ProgramacionHorarios({ userData, onLogout }) {
+function ProgramacionHorarios() {
   const navigate = useNavigate();
+  const { userData, logout } = useAuth();
   const [user, setUser] = useState(null);
   const [puntosVenta, setPuntosVenta] = useState([]);
   const [loadingPuntos, setLoadingPuntos] = useState(true);
@@ -192,27 +194,22 @@ function ProgramacionHorarios({ userData, onLogout }) {
 
   // Verificar autenticación y cargar datos
   useEffect(() => {
-    let datosUsuario = userData;
+    const datosUsuario = userData;
     if (!datosUsuario) {
-      const storedData = localStorage.getItem('userData');
-      if (storedData) {
-        datosUsuario = JSON.parse(storedData);
-      } else {
-        onLogout?.();
-        return;
-      }
+      logout();
+      return;
     }
 
     const instructoraData = {
-      documento: datosUsuario?.document_number || datosUsuario?.documento || '',
-      nombre: datosUsuario?.nombre || datosUsuario?.name || '',
-      correo: datosUsuario?.correo || datosUsuario?.email || '',
-      telefono: datosUsuario?.Celular || datosUsuario?.telefono || datosUsuario?.phone || '',
+      documento: datosUsuario?.document_number || '',
+      nombre: datosUsuario?.nombre || '',
+      correo: datosUsuario?.correo || '',
+      telefono: datosUsuario?.Celular || '',
       foto: datosUsuario?.foto || ''
     };
 
     setUser(instructoraData);
-  }, [userData, navigate]);
+  }, [logout, navigate, userData]);
 
   // Guardar programación en localStorage cuando cambie
   useEffect(() => {
@@ -234,7 +231,7 @@ function ProgramacionHorarios({ userData, onLogout }) {
 
     const cargarHorariosAPI = async () => {
       try {
-        const documento = user.document_number || user.documento || user.cedula;
+        const documento = user.documento;
         if (!documento) return;
 
         // Usar las fechas de la semana calculadas
@@ -436,7 +433,7 @@ function ProgramacionHorarios({ userData, onLogout }) {
     try {
       const fecha = fechasSemana[diaIndex];
       const fechaFormateada = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
-      const documento = user.document_number || user.documento || user.cedula;
+      const documento = user.documento;
       const datosAPI = {
         data: {
           pdv_nombre: 'N/A',
@@ -475,7 +472,7 @@ function ProgramacionHorarios({ userData, onLogout }) {
   };
 
   const handleEditarEvento = (dia, index, evento, diaIndex) => {
-    console.log('🔥 Editando evento:', { dia, index, evento });
+    console.log(' Editando evento:', { dia, index, evento });
     
     // Cargar datos en el formulario del modal
     setFormDataModal({
@@ -630,7 +627,7 @@ function ProgramacionHorarios({ userData, onLogout }) {
       const horaInicio = formDataModal.motivo === 'vacaciones' ? '00:00:00' : `${formDataModal.horaInicio}:00`;
       const horaFin = formDataModal.motivo === 'vacaciones' ? '00:00:00' : `${formDataModal.horaFin}:00`;
       
-      const documento = user.document_number || user.documento || user.cedula;
+      const documento = user.documento;
 
       const datosAPI = {
         data: {
@@ -740,6 +737,10 @@ function ProgramacionHorarios({ userData, onLogout }) {
         });
       });
     });
+
+    const documentStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map((node) => node.outerHTML)
+      .join('\n');
     
     // Crear ventana de impresión
     const printWindow = window.open('', '_blank');
@@ -748,96 +749,29 @@ function ProgramacionHorarios({ userData, onLogout }) {
       <html>
         <head>
           <title>Agenda Semanal - ${user?.nombre}</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              margin: 20px;
-              color: #333;
-            }
-            .header {
-              text-align: center;
-              margin-bottom: 20px;
-              padding-bottom: 10px;
-              border-bottom: 2px solid #AECE82;
-            }
-            .header h1 {
-              color: #6B4E3D;
-              margin: 10px 0;
-            }
-            .info-semana {
-              background: #f8f9fa;
-              padding: 15px;
-              border-radius: 8px;
-              margin-bottom: 20px;
-            }
-            .info-semana h3 {
-              margin: 0 0 10px 0;
-              color: #AECE82;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 20px;
-            }
-            th, td {
-              border: 1px solid #ddd;
-              padding: 10px;
-              text-align: left;
-              vertical-align: top;
-            }
-            th {
-              background: linear-gradient(135deg, #AECE82 0%, #9bb86e 100%);
-              color: white;
-              font-weight: 600;
-            }
-            td {
-              background: white;
-            }
-            tr:nth-child(even) td {
-              background: #f9f9f9;
-            }
-            .footer {
-              margin-top: 20px;
-              text-align: center;
-              font-size: 0.9em;
-              color: #888;
-            }
-            .punto-venta {
-              font-weight: 600;
-              color: #6B4E3D;
-              margin-bottom: 2px;
-            }
-            .detalle {
-              font-size: 0.85em;
-              color: #666;
-            }
-            @media print {
-              body { margin: 0; }
-              .header { page-break-after: avoid; }
-            }
-          </style>
+          ${documentStyles}
         </head>
-        <body>
-          <div class="header">
-            <h1>Agenda Semanal de Capacitaciones</h1>
+        <body class="programacion-print">
+          <div class="programacion-print__header">
+            <h1 class="programacion-print__title">Agenda Semanal de Capacitaciones</h1>
             <p><strong>Instructora:</strong> ${user?.nombre}</p>
-            <p><strong>Documento:</strong> ${user?.document_number || user?.documento || 'N/A'}</p>
+            <p><strong>Documento:</strong> ${user?.documento || 'N/A'}</p>
           </div>
           
-          <div class="info-semana">
-            <h3>Programación - Próxima Semana #${infoSemana.numeroSemana}</h3>
+          <div class="programacion-print__summary">
+            <h3 class="programacion-print__summary-title">Programación - Próxima Semana #${infoSemana.numeroSemana}</h3>
             <p><strong>Período:</strong> ${formatearFechaCompleta(infoSemana.fechaInicio)} - ${formatearFechaCompleta(infoSemana.fechaFin)}</p>
             <p><strong>Total de horas programadas:</strong> ${totalHoras.toFixed(1)} horas</p>
           </div>
           
-          <table>
+          <table class="programacion-print__table">
             <thead>
               <tr>
-                <th style="width: 12%">Día</th>
-                <th style="width: 18%">Fecha</th>
-                <th style="width: 25%">Actividad</th>
-                <th style="width: 15%">Hora</th>
-                <th style="width: 30%">Punto de Venta</th>
+                <th class="programacion-print__col-day">Día</th>
+                <th class="programacion-print__col-date">Fecha</th>
+                <th class="programacion-print__col-activity">Actividad</th>
+                <th class="programacion-print__col-time">Hora</th>
+                <th class="programacion-print__col-pdv">Punto de Venta</th>
               </tr>
             </thead>
             <tbody>
@@ -848,15 +782,15 @@ function ProgramacionHorarios({ userData, onLogout }) {
                   <td>${act.actividad}</td>
                   <td>${act.hora}</td>
                   <td>
-                    <div class="punto-venta">${act.puntoVenta}</div>
-                    ${act.detalleCubrir ? `<div class="detalle">Cubrir en: ${act.detalleCubrir}</div>` : ''}
+                    <div class="programacion-print__pdv">${act.puntoVenta}</div>
+                    ${act.detalleCubrir ? `<div class="programacion-print__detail">Cubrir en: ${act.detalleCubrir}</div>` : ''}
                   </td>
                 </tr>
-              `).join('') : '<tr><td colspan="5" style="text-align: center; color: #999;"><em>No hay programación registrada</em></td></tr>'}
+              `).join('') : '<tr><td colspan="5" class="programacion-print__empty"><em>No hay programación registrada</em></td></tr>'}
             </tbody>
           </table>
           
-          <div class="footer">
+          <div class="programacion-print__footer">
             <p>Generado el ${new Date().toLocaleDateString('es-CO', { 
               day: '2-digit', 
               month: 'long', 
@@ -887,7 +821,7 @@ function ProgramacionHorarios({ userData, onLogout }) {
 
   const handleLogoutClick = () => {
     if (window.confirm('¿Estás segura de que deseas cerrar sesión?')) {
-      onLogout();
+      logout();
       navigate('/cap/cafe', { replace: true });
     }
   };
@@ -987,16 +921,15 @@ function ProgramacionHorarios({ userData, onLogout }) {
                   <div className="dia-card-body">
                     {eventos.length === 0 ? (
                       <div className="sin-eventos">
-                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#bbb', fontStyle: 'italic' }}>Sin actividades</p>
+                        <p className="sin-eventos-text">Sin actividades</p>
                       </div>
                     ) : (
                       <div className="eventos-lista">
                         {eventos.map((evento, eventoIndex) => (
                           <div
                             key={eventoIndex}
-                            className="evento-item"
+                            className={`evento-item ${evento.motivo === 'dia_descanso' ? 'evento-item-readonly' : ''}`}
                             onClick={() => handleEditarEvento(dia, eventoIndex, evento, diaIndex)}
-                            style={{ cursor: evento.motivo === 'dia_descanso' ? 'default' : 'pointer' }}
                           >
                             <div className="evento-hora">
                               {(evento.motivo === 'dia_descanso' || evento.motivo === 'vacaciones') ?
@@ -1068,13 +1001,13 @@ function ProgramacionHorarios({ userData, onLogout }) {
           </Button>,
         ]}
       >
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <div className="profile-avatar-modal" style={{ margin: '0 auto 20px' }}>
+        <div className="profile-modal-content">
+          <div className="profile-avatar-modal profile-avatar-modal-centered">
             {getInitials(user?.nombre)}
           </div>
-          <h3 style={{ margin: '0 0 10px 0', color: '#6B4E3D', fontSize: 24 }}>{user?.nombre}</h3>
-          <p style={{ margin: '5px 0', color: '#666' }}><strong>Cargo:</strong> {user?.cargo}</p>
-          <p style={{ margin: '5px 0', color: '#666' }}><strong>Documento:</strong> {user?.document_number || user?.documento}</p>
+          <h3 className="profile-modal-heading">{user?.nombre}</h3>
+          <p className="profile-modal-text"><strong>Cargo:</strong> {user?.cargo}</p>
+          <p className="profile-modal-text"><strong>Documento:</strong> {user?.documento}</p>
         </div>
       </Modal>
 
@@ -1135,7 +1068,7 @@ function ProgramacionHorarios({ userData, onLogout }) {
                   )}
                 </div>
                 {formDataModal.puntoVenta && (
-                  <span style={{ fontSize: '0.8rem', color: '#28a745', marginTop: '2px' }}>
+                  <span className="pdv-selected-hint">
                     ✓ Seleccionado: {formDataModal.puntoVenta}
                   </span>
                 )}
@@ -1143,7 +1076,7 @@ function ProgramacionHorarios({ userData, onLogout }) {
 
               <div className="form-row-modal">
                 <div className="form-group-modal">
-                  <label htmlFor="horaInicio-modal">Hora Inicio <span style={{ fontWeight: 400, fontSize: '0.8rem', color: '#999' }}>(formato 24h)</span></label>
+                  <label htmlFor="horaInicio-modal">Hora Inicio <span className="form-label-helper">(formato 24h)</span></label>
                   <input
                     type="time"
                     id="horaInicio-modal"
@@ -1156,7 +1089,7 @@ function ProgramacionHorarios({ userData, onLogout }) {
                 </div>
 
                 <div className="form-group-modal">
-                  <label htmlFor="horaFin-modal">Hora Fin <span style={{ fontWeight: 400, fontSize: '0.8rem', color: '#999' }}>(formato 24h)</span></label>
+                  <label htmlFor="horaFin-modal">Hora Fin <span className="form-label-helper">(formato 24h)</span></label>
                   <input
                     type="time"
                     id="horaFin-modal"

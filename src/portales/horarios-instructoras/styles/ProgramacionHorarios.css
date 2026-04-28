@@ -639,6 +639,160 @@
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
+.sin-eventos-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #bbb;
+  font-style: italic;
+}
+
+.evento-item-readonly {
+  cursor: default;
+}
+
+.profile-modal-content {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.profile-avatar-modal-centered {
+  margin: 0 auto 20px;
+}
+
+.profile-modal-heading {
+  margin: 0 0 10px;
+  color: #6B4E3D;
+  font-size: 24px;
+}
+
+.profile-modal-text {
+  margin: 5px 0;
+  color: #666;
+}
+
+.pdv-selected-hint {
+  font-size: 0.8rem;
+  color: #28a745;
+  margin-top: 2px;
+}
+
+.form-label-helper {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.programacion-print {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  color: #333;
+}
+
+.programacion-print__header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #AECE82;
+}
+
+.programacion-print__title {
+  color: #6B4E3D;
+  margin: 10px 0;
+}
+
+.programacion-print__summary {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.programacion-print__summary-title {
+  margin: 0 0 10px;
+  color: #AECE82;
+}
+
+.programacion-print__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.programacion-print__table th,
+.programacion-print__table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.programacion-print__table th {
+  background: linear-gradient(135deg, #AECE82 0%, #9bb86e 100%);
+  color: white;
+  font-weight: 600;
+}
+
+.programacion-print__table td {
+  background: white;
+}
+
+.programacion-print__table tr:nth-child(even) td {
+  background: #f9f9f9;
+}
+
+.programacion-print__col-day {
+  width: 12%;
+}
+
+.programacion-print__col-date {
+  width: 18%;
+}
+
+.programacion-print__col-activity {
+  width: 25%;
+}
+
+.programacion-print__col-time {
+  width: 15%;
+}
+
+.programacion-print__col-pdv {
+  width: 30%;
+}
+
+.programacion-print__pdv {
+  font-weight: 600;
+  color: #6B4E3D;
+  margin-bottom: 2px;
+}
+
+.programacion-print__detail {
+  font-size: 0.85em;
+  color: #666;
+}
+
+.programacion-print__empty {
+  text-align: center;
+  color: #999;
+}
+
+.programacion-print__footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.9em;
+  color: #888;
+}
+
+@media print {
+  .programacion-print {
+    margin: 0;
+  }
+
+  .programacion-print__header {
+    page-break-after: avoid;
+  }
+}
+
 .profile-avatar-modal {
   width: 100px;
   height: 100px;

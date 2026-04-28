@@ -5,6 +5,7 @@ import { EyeOutlined, DownloadOutlined, EditOutlined, DownOutlined, UpOutlined }
 import 'antd/dist/reset.css';
 import '../styles/Dashboard.css';
 import { getCapInstructoras, getHorariosInstructoras, updateHorarioInstructora } from '../../../services/apiService';
+import { useAuth } from '../../../shared/context/AuthContext';
 
 const MESES_CORTO  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const MESES_LARGO  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -74,8 +75,9 @@ const calcularRangoSemana = (offset = 0) => {
 };
 
 
-function Dashboard({ userData, onLogout }) {
+function Dashboard() {
   const navigate = useNavigate();
+  const { userData, logout } = useAuth();
 
   const [user, setUser]                   = useState(null);
   const [semanaOffset, setSemanaOffset]   = useState(0);
@@ -102,26 +104,20 @@ function Dashboard({ userData, onLogout }) {
   const pdvCargados = useRef(false);
 
   useEffect(() => {
-    // Intentar obtener datos de localStorage si userData no está disponible
-    let datosUsuario = userData;
+    const datosUsuario = userData;
     if (!datosUsuario) {
-      const storedData = localStorage.getItem('userData');
-      if (storedData) {
-        datosUsuario = JSON.parse(storedData);
-      } else {
-        onLogout?.();
-        return;
-      }
+      logout();
+      return;
     }
 
-    const doc = datosUsuario?.document_number || datosUsuario?.documento || '';
-    const nombre = datosUsuario?.nombre || datosUsuario?.name || '';
+    const doc = datosUsuario?.document_number || '';
+    const nombre = datosUsuario?.nombre || '';
 
     const baseUser = {
       documento: doc,
       nombre,
-      correo:   datosUsuario?.correo   || datosUsuario?.email   || '',
-      telefono: datosUsuario?.Celular  || datosUsuario?.telefono || datosUsuario?.phone || '',
+      correo:   datosUsuario?.correo || '',
+      telefono: datosUsuario?.Celular || '',
       foto:     datosUsuario?.foto     || '',
     };
 
@@ -169,7 +165,7 @@ function Dashboard({ userData, onLogout }) {
         pdvCargados.current = true;
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData]);
+  }, [logout, userData]);
 
   // ── EFECTO 2: Horarios — se recarga cuando cambia el offset ─────────────────
   // Usa el documento directamente de `user`; NO re-dispara la carga de PDV.
@@ -186,7 +182,7 @@ function Dashboard({ userData, onLogout }) {
     const diasHastaL    = (8 - primerDia.getDay()) % 7;
     const numeroSemana  = Math.ceil((lunes.getDate() - diasHastaL) / 7) + 1;
 
-    console.log('📅 Cargando horarios:', { documento, fechaInicio: fechaInicioStr, fechaFin: fechaFinStr });
+    console.log(' Cargando horarios:', { documento, fechaInicio: fechaInicioStr, fechaFin: fechaFinStr });
 
     try {
       const data = await getHorariosInstructoras(
@@ -318,7 +314,7 @@ function Dashboard({ userData, onLogout }) {
       },
     };
 
-    console.log('✏️ Actualizando actividad:', { apiId: eventoEditar.apiId, payload });
+    console.log(' Actualizando actividad:', { apiId: eventoEditar.apiId, payload });
 
     try {
       await updateHorarioInstructora(eventoEditar.apiId, payload);
@@ -341,6 +337,10 @@ function Dashboard({ userData, onLogout }) {
 
 
   const handleDescargarPDF = (semana) => {
+    const documentStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map((node) => node.outerHTML)
+      .join('\n');
+
     const filas = horariosDetalles.map(h => `
       <tr>
         <td><strong>${getDiaSemana(h.fecha)}</strong></td>
@@ -352,42 +352,31 @@ function Dashboard({ userData, onLogout }) {
 
     const html = `<!DOCTYPE html>
       <html><head><title>Programación Semanal</title>
-      <style>
-        body{font-family:Arial,sans-serif;margin:20px;color:#333}
-        .header{text-align:center;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid #AECE82}
-        .header h1{color:#6B4E3D;margin:10px 0}
-        .info-semana{background:#f8f9fa;padding:15px;border-radius:8px;margin-bottom:20px}
-        .info-semana p{margin:5px 0}
-        table{width:100%;border-collapse:collapse;margin-bottom:20px}
-        th,td{border:1px solid #ddd;padding:10px;text-align:left}
-        th{background:linear-gradient(135deg,#AECE82 0%,#9bb86e 100%);color:#fff;font-weight:600}
-        tr:nth-child(even){background:#f9f9f9}
-        .footer{margin-top:20px;text-align:center;font-size:.9em;color:#888}
-      </style></head>
-      <body>
-        <div class="header">
-          <h1>Programación Semanal de Capacitaciones</h1>
+      ${documentStyles}</head>
+      <body class="dashboard-print">
+        <div class="dashboard-print__header">
+          <h1 class="dashboard-print__title">Programación Semanal de Capacitaciones</h1>
           <p><strong>Instructora:</strong> ${user?.nombre || 'N/A'}</p>
         </div>
-        <div class="info-semana">
+        <div class="dashboard-print__summary">
           <p><strong>Período:</strong> ${formatearRangoFechas(semana.fechaInicio, semana.fechaFin)}</p>
           <p><strong>Total de horas programadas:</strong> ${semana.totalHoras.toFixed(1)} horas</p>
         </div>
-        <table>
+        <table class="dashboard-print__table">
           <thead>
             <tr>
-              <th style="width:12%">Día</th><th style="width:18%">Fecha</th>
-              <th style="width:25%">Actividad</th><th style="width:15%">Hora</th>
-              <th style="width:30%">Punto de Venta</th>
+              <th class="dashboard-print__col-day">Día</th><th class="dashboard-print__col-date">Fecha</th>
+              <th class="dashboard-print__col-activity">Actividad</th><th class="dashboard-print__col-time">Hora</th>
+              <th class="dashboard-print__col-pdv">Punto de Venta</th>
             </tr>
           </thead>
           <tbody>
             ${horariosDetalles.length > 0
               ? filas
-              : '<tr><td colspan="5" style="text-align:center;color:#999"><em>No hay programación registrada</em></td></tr>'}
+              : '<tr><td colspan="5" class="dashboard-print__empty"><em>No hay programación registrada</em></td></tr>'}
           </tbody>
         </table>
-        <div class="footer">
+        <div class="dashboard-print__footer">
           <p>Generado el ${new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
         </div>
       </body></html>`;
@@ -455,12 +444,12 @@ function Dashboard({ userData, onLogout }) {
             <div>
               <h3 className="table-title">Horarios Programados</h3>
               {infoSemana && (
-                <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '14px' }}>
+                <p className="table-period-text">
                   {formatearFecha(infoSemana.fechaInicio)} - {formatearFecha(infoSemana.fechaFin)}
                 </p>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div className="table-nav-group">
               <button className="btn-semana-nav"
                 onClick={() => { setSemanaOffset(p => p - 1); setFilaExpandida(null); }}>
                 ← Anterior
@@ -476,13 +465,13 @@ function Dashboard({ userData, onLogout }) {
               </button>
             </div>
             <div className="table-stats">
-              <Tag color="green" style={{ fontSize: '14px', padding: '6px 12px' }}>
+              <Tag color="green" className="dashboard-total-tag">
                 Total: {totalHoras.toFixed(1)}h
               </Tag>
             </div>
           </div>
 
-          <Card style={{ margin: '20px 40px' }}>
+          <Card className="dashboard-table-card">
             <Table
               dataSource={horariosData}
               columns={[
@@ -492,7 +481,7 @@ function Dashboard({ userData, onLogout }) {
                 },
                 {
                   title: 'Total Horas', dataIndex: 'totalHoras', key: 'totalHoras',
-                  render: h => <Tag color="cyan" style={{ fontSize: '14px' }}>{h.toFixed(1)}h</Tag>,
+                  render: h => <Tag color="cyan" className="dashboard-hours-tag">{h.toFixed(1)}h</Tag>,
                 },
                 {
                   title: 'Acciones', key: 'acciones',
@@ -500,11 +489,11 @@ function Dashboard({ userData, onLogout }) {
                     <Space size="small">
                       <Tooltip title="Ver detalle">
                         <Button type="text" icon={<EyeOutlined />}
-                          onClick={() => handleVer(record)} style={{ color: '#52c41a' }} />
+                          onClick={() => handleVer(record)} className="dashboard-action-btn dashboard-action-btn--view" />
                       </Tooltip>
                       <Tooltip title="Descargar PDF">
                         <Button type="text" icon={<DownloadOutlined />}
-                          onClick={() => handleDescargarPDF(record)} style={{ color: '#1890ff' }} />
+                          onClick={() => handleDescargarPDF(record)} className="dashboard-action-btn dashboard-action-btn--download" />
                       </Tooltip>
                     </Space>
                   ),
@@ -512,8 +501,8 @@ function Dashboard({ userData, onLogout }) {
               ]}
               expandable={{
                 expandedRowRender: () => (
-                  <div style={{ padding: '20px', background: '#fafafa' }}>
-                    <h4 style={{ marginBottom: '15px', color: '#4e3416' }}>Actividades de la Semana</h4>
+                  <div className="dashboard-expanded-content">
+                    <h4 className="dashboard-expanded-title">Actividades de la Semana</h4>
                     {horariosDetalles.length > 0 ? (
                       <Table
                         dataSource={horariosDetalles.map((d, i) => ({ ...d, key: i }))}
@@ -544,7 +533,7 @@ function Dashboard({ userData, onLogout }) {
                                 <Tooltip title="Editar">
                                   <Button type="text" size="small" icon={<EditOutlined />}
                                     onClick={() => handleEditarActividad(detalle)}
-                                    style={{ color: '#AECE82' }} />
+                                    className="dashboard-action-btn dashboard-action-btn--edit" />
                                 </Tooltip>
                               </Space>
                             ),
@@ -553,7 +542,7 @@ function Dashboard({ userData, onLogout }) {
                         pagination={false} size="small"
                       />
                     ) : (
-                      <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
+                      <p className="dashboard-empty-state">
                         No hay actividades programadas
                       </p>
                     )}
@@ -561,8 +550,8 @@ function Dashboard({ userData, onLogout }) {
                 ),
                 expandIcon: ({ expanded, onExpand, record }) =>
                   expanded
-                    ? <UpOutlined   onClick={e => onExpand(record, e)} style={{ color: '#AECE82' }} />
-                    : <DownOutlined onClick={e => onExpand(record, e)} style={{ color: '#AECE82' }} />,
+                    ? <UpOutlined   onClick={e => onExpand(record, e)} className="dashboard-expand-icon" />
+                    : <DownOutlined onClick={e => onExpand(record, e)} className="dashboard-expand-icon" />,
                 onExpand:        (expanded, record) => setFilaExpandida(expanded ? record.key : null),
                 expandedRowKeys: filaExpandida ? [filaExpandida] : [],
               }}
@@ -580,7 +569,7 @@ function Dashboard({ userData, onLogout }) {
             <div className="profile-avatar-modal">
               {user?.foto
                 ? <img src={user.foto} alt="Perfil"
-                    style={{ width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%' }} />
+                    className="profile-avatar-modal-image" />
                 : getInitials(user?.nombre)}
             </div>
             <h2 className="profile-name-modal">{user?.nombre}</h2>
@@ -611,15 +600,7 @@ function Dashboard({ userData, onLogout }) {
             <button className="logout-button-modal" onClick={() => {
               setShowProfileModal(false);
               //  Limpiar localStorage al cerrar sesión
-              localStorage.removeItem('userData');
-              // Limpiar cache de PDV
-              const keys = Object.keys(localStorage);
-              keys.forEach(key => {
-                if (key.startsWith('pdv_')) {
-                  localStorage.removeItem(key);
-                }
-              });
-              onLogout();
+              logout();
               navigate('/cap/cafe', { replace: true });
             }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
@@ -640,22 +621,22 @@ function Dashboard({ userData, onLogout }) {
         footer={null} centered width={900}
       >
         {semanaPreview && (
-          <div style={{ padding: '10px 0' }}>
-            <Card style={{ marginBottom: '20px', background: '#f5f5f5' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+          <div className="dashboard-preview-content">
+            <Card className="dashboard-preview-summary-card">
+              <div className="dashboard-preview-summary-grid">
                 <div>
-                  <div style={{ fontSize: '14px', color: '#999', marginBottom: '5px' }}>Semana #</div>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#4e3416' }}>{semanaPreview.numeroSemana}</div>
+                  <div className="dashboard-preview-label">Semana #</div>
+                  <div className="dashboard-preview-value dashboard-preview-value--primary">{semanaPreview.numeroSemana}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '14px', color: '#999', marginBottom: '5px' }}>Período</div>
-                  <div style={{ fontSize: '16px', fontWeight: '500', color: '#333' }}>
+                  <div className="dashboard-preview-label">Período</div>
+                  <div className="dashboard-preview-value">
                     {formatearRangoFechas(semanaPreview.fechaInicio, semanaPreview.fechaFin)}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '14px', color: '#999', marginBottom: '5px' }}>Total de Horas</div>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#AECE82' }}>
+                  <div className="dashboard-preview-label">Total de Horas</div>
+                  <div className="dashboard-preview-value dashboard-preview-value--accent">
                     {semanaPreview.totalHoras.toFixed(1)}h
                   </div>
                 </div>
@@ -679,7 +660,7 @@ function Dashboard({ userData, onLogout }) {
                 pagination={false} size="small" bordered
               />
             )}
-            <div style={{ marginTop: '20px', textAlign: 'right', color: '#999', fontSize: '12px' }}>
+            <div className="dashboard-preview-footer">
               Generado el {new Date().toLocaleDateString('es-CO')}
             </div>
           </div>
@@ -694,13 +675,13 @@ function Dashboard({ userData, onLogout }) {
         footer={[
           <Button key="cancel" onClick={handleCerrarModal}>Cancelar</Button>,
           <Button key="save" type="primary" onClick={handleGuardarEdicionModal}
-            style={{ background: '#AECE82', borderColor: '#AECE82' }}>
+            className="dashboard-save-btn">
             Guardar Cambios
           </Button>,
         ]}
         centered width={700}
       >
-        <Form layout="vertical" style={{ marginTop: '20px' }}>
+        <Form layout="vertical" className="dashboard-edit-form">
           <Form.Item label="Punto de Venta">
             <Select
               value={formDataModal.puntoVenta || undefined}
@@ -712,13 +693,13 @@ function Dashboard({ userData, onLogout }) {
             </Select>
           </Form.Item>
 
-          <Space style={{ display: 'flex', gap: '10px' }}>
-            <Form.Item label="Hora Inicio" style={{ flex: 1 }}>
+          <Space className="dashboard-edit-time-row">
+            <Form.Item label="Hora Inicio" className="dashboard-edit-time-field">
               <Input type="time" name="horaInicio" value={formDataModal.horaInicio}
                 onChange={handleInputChangeModal}
                 disabled={MOTIVOS_SIN_HORA.includes(formDataModal.motivo)} size="large" />
             </Form.Item>
-            <Form.Item label="Hora Fin" style={{ flex: 1 }}>
+            <Form.Item label="Hora Fin" className="dashboard-edit-time-field">
               <Input type="time" name="horaFin" value={formDataModal.horaFin}
                 onChange={handleInputChangeModal}
                 disabled={MOTIVOS_SIN_HORA.includes(formDataModal.motivo)} size="large" />
@@ -726,7 +707,7 @@ function Dashboard({ userData, onLogout }) {
           </Space>
 
           <Form.Item label="Motivo">
-            <Space wrap size="small" style={{ width: '100%' }}>
+            <Space wrap size="small" className="dashboard-motivos-space">
               {MOTIVOS_BASICOS.map(m => (
                 <Button key={m}
                   type={formDataModal.motivo === m ? 'primary' : 'default'}
@@ -734,7 +715,7 @@ function Dashboard({ userData, onLogout }) {
                     setFormDataModal(prev => ({ ...prev, motivo: m, detalleCubrir: '', detalleOtro: '' }));
                     setShowMoreMotivos(false);
                   }}
-                  style={formDataModal.motivo === m ? { background: '#AECE82', borderColor: '#AECE82' } : {}}>
+                  className={formDataModal.motivo === m ? 'dashboard-motivo-btn dashboard-motivo-btn--active' : 'dashboard-motivo-btn'}>
                   {MOTIVOS_LABELS[m]}
                 </Button>
               ))}
@@ -749,7 +730,7 @@ function Dashboard({ userData, onLogout }) {
                       detalleCubrir: k !== 'cubrir_puesto' ? '' : prev.detalleCubrir,
                       detalleOtro:   k !== 'otro'          ? '' : prev.detalleOtro,
                     }))}
-                    style={formDataModal.motivo === k ? { background: '#AECE82', borderColor: '#AECE82' } : {}}>
+                    className={formDataModal.motivo === k ? 'dashboard-motivo-btn dashboard-motivo-btn--active' : 'dashboard-motivo-btn'}>
                     {label}
                   </Button>
                 ))}

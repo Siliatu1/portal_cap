@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './MainMenu.css';
+import { useAuth } from '../context/AuthContext';
 
-const MainMenu = ({ userData, onLogout }) => {
+const MainMenu = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { userData, logout } = useAuth();
   const [fotoPerfil, setFotoPerfil] = useState('');
   const normalizarDocumento = (valor) => String(valor || '').replace(/\D/g, '');
 
@@ -17,12 +19,11 @@ const MainMenu = ({ userData, onLogout }) => {
     return name.substring(0, 2).toUpperCase();
   };
 
-  //  Obtener datos de localStorage si userData no está disponible
-  const datosUsuario = userData || JSON.parse(localStorage.getItem('userData') || '{}');
+  const datosUsuario = userData || {};
 
-  const nombreUsuario = datosUsuario?.nombre || datosUsuario?.name || '';
-  const cargoUsuario = datosUsuario?.cargo || datosUsuario?.cargo_general || '';
-  const documentoUsuario = datosUsuario?.document_number || datosUsuario?.documento || '';
+  const nombreUsuario = datosUsuario?.nombre || '';
+  const cargoUsuario = datosUsuario?.cargo || '';
+  const documentoUsuario = datosUsuario?.document_number || '';
 
   // Obtener foto de perfil desde los datos (ya viene del login, guardados en localStorage)
   useEffect(() => {
@@ -83,15 +84,7 @@ const MainMenu = ({ userData, onLogout }) => {
 
   const handleLogoutClick = () => {
     if (window.confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-      localStorage.removeItem('userData');
-      // También limpiar cache de PDV para que se actualice en el próximo login
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith('pdv_')) {
-          localStorage.removeItem(key);
-        }
-      });
-      onLogout();
+      logout();
       navigate('/cap/cafe', { replace: true });
     }
   };

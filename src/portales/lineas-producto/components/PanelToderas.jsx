@@ -6,6 +6,7 @@ import { Table, Input, Button, message, Switch, Modal, Select } from "antd";
 import { SearchOutlined, DownloadOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import { getCapToderas, updateCapTodera } from '../../../services/apiService';
+import { useAuth } from '../../../shared/context/AuthContext';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -17,8 +18,9 @@ const normalizarTexto = (valor) => String(valor || '')
   .replace(/\s+/g, ' ')
   .trim();
 
-const PanelToderas = ({ userData, onLogout }) => {
+const PanelToderas = () => {
   const navigate = useNavigate();
+  const { userData, logout } = useAuth();
   const [inscripciones, setInscripciones] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filtros, setFiltros] = useState({
@@ -44,14 +46,9 @@ const PanelToderas = ({ userData, onLogout }) => {
 
   const datosUsuario = userData?.data || userData || {};
 
-  const nombreUsuario = datosUsuario.nombre || 
-    datosUsuario.name ||
-    (datosUsuario.first_name && datosUsuario.last_name 
-      ? `${datosUsuario.first_name} ${datosUsuario.last_name}`.trim()
-      : datosUsuario.full_name || '');
+  const nombreUsuario = datosUsuario.nombre || '';
 
-  const documentoUsuario = datosUsuario.document_number || 
-    datosUsuario.documento || '';
+  const documentoUsuario = datosUsuario.document_number || '';
 
 
 
@@ -408,7 +405,7 @@ const PanelToderas = ({ userData, onLogout }) => {
           <h1>Acceso Denegado</h1>
           <p>No tienes permisos para acceder a este panel.</p>
           <p>Solo instructoras autorizadas pueden controlar la asistencia de la evaluación todera.</p>
-          <button onClick={onLogout} className="btn-volver">
+          <button onClick={logout} className="btn-volver">
             <i className="bi bi-arrow-left-circle"></i> Volver
           </button>
         </div>
@@ -444,7 +441,7 @@ const PanelToderas = ({ userData, onLogout }) => {
             Volver 
           </Button>
           <Button 
-            onClick={onLogout}
+            onClick={logout}
             size="large"
             style={{
               backgroundColor: '#ffffff44',

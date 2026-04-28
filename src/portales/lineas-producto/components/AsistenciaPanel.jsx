@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from '@tanstack/react-query';
 import "./admin_panel.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { Table, Input, Button, Space, message, Select, Switch } from "antd";
 import { SearchOutlined, DownloadOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
-import { getBukEmpleadosByDocumento, getCapCafes, updateCapCafe } from '../../../services/apiService';
+import { getCapCafes, updateCapCafe } from '../../../services/apiService';
+import { fetchBukEmpleadoByDocumento } from '../../../services/bukEmpleadosQuery';
+import { useAuth } from '../../../shared/context/AuthContext';
 
-const AsistenciaPanel = ({ userData, onLogout }) => {
+const AsistenciaPanel = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { userData, logout } = useAuth();
   const [inscripciones, setInscripciones] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filtros, setFiltros] = useState({
@@ -22,17 +27,11 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
   // Documento autorizado para este panel
   const documentoAutorizado = '35512822';
   const normalizarDocumento = (valor) => String(valor || '').replace(/\D/g, '');
+  const datosUsuario = userData?.data || userData || {};
 
-  const nombreUsuario = userData?.data?.nombre || 
-    userData?.data?.name ||
-    (userData?.data?.first_name && userData?.data?.last_name 
-      ? `${userData.data.first_name} ${userData.data.last_name}`.trim()
-      : userData?.data?.full_name || '');
+  const nombreUsuario = datosUsuario?.nombre || '';
 
-  const documentoUsuario = userData?.document_number ||
-    userData?.data?.document_number ||
-    userData?.data?.documento ||
-    userData?.documento || '';
+  const documentoUsuario = datosUsuario?.document_number || '';
 
   // Verificar si el usuario tiene acceso
   const tieneAcceso = normalizarDocumento(documentoUsuario) === normalizarDocumento(documentoAutorizado);
@@ -83,12 +82,7 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
     if (!cedula || fotosCache[cedula]) return fotosCache[cedula];
     
     try {
-      const data = await getBukEmpleadosByDocumento(cedula);
-      const empleados = data?.data || data;
-      const empleado = Array.isArray(empleados) 
-        ? empleados.find(emp => String(emp.document_number) === String(cedula))
-        : null;
-      
+      const empleado = await fetchBukEmpleadoByDocumento(queryClient, cedula);
       const foto = empleado?.foto || '';
       setFotosCache(prev => ({ ...prev, [cedula]: foto }));
       return foto;
@@ -170,6 +164,23 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
     XLSX.writeFile(wb, `Inscripciones_${new Date().toISOString().split('T')[0]}.xlsx`);
     message.success('Archivo Excel exportado exitosamente');
   };
+
+  const opcionesPuntoVenta = [...new Set(inscripciones.map(item => item.puntoVenta).filter(Boolean))]
+    .sort()
+    .map((pdv) => ({
+      label: pdv,
+      value: pdv,
+    }));
+
+  const opcionesFecha = [...new Set(inscripciones.map(item => item.dia).filter(Boolean))]
+    .sort((a, b) => b.localeCompare(a))
+    .map((fecha) => {
+      const [year, month, day] = fecha.split('-');
+      return {
+        label: `${day}/${month}/${year}`,
+        value: fecha,
+      };
+    });
 
   const columns = [
     {
@@ -299,7 +310,7 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
           <h1>Acceso Denegado</h1>
           <p>No tienes permisos para acceder a este panel.</p>
           <p>Solo usuarios autorizados pueden controlar la asistencia de la Escuela del Café.</p>
-          <button onClick={onLogout} className="btn-volver">
+          <button onClick={logout} className="btn-volver">
             <i className="bi bi-arrow-left-circle"></i> Volver
           </button>
         </div>
@@ -321,7 +332,7 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
         <div className="header-right">
           <button 
             className="btn-back"
-            onClick={onLogout}
+            onClick={logout}
             title="Cerrar sesión"
           >
             <i className="bi bi-box-arrow-right"></i>
@@ -364,16 +375,11 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
                 value={filtros.puntoVenta || undefined}
                 onChange={(value) => setFiltros({ ...filtros, puntoVenta: value || '' })}
                 style={{ width: 220 }}
+                options={opcionesPuntoVenta}
                 filterOption={(input, option) =>
-                  (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                 }
-              >
-                {[...new Set(inscripciones.map(item => item.puntoVenta).filter(Boolean))]
-                  .sort()
-                  .map(pdv => (
-                    <Select.Option key={pdv} value={pdv}>{pdv}</Select.Option>
-                  ))}
-              </Select>
+              />
               <Select
                 placeholder="Filtrar por fecha"
                 allowClear
@@ -381,17 +387,11 @@ const AsistenciaPanel = ({ userData, onLogout }) => {
                 value={filtros.fecha || undefined}
                 onChange={(value) => setFiltros({ ...filtros, fecha: value || '' })}
                 style={{ width: 180 }}
-              >
-                {[...new Set(inscripciones.map(item => item.dia).filter(Boolean))]
-                  .sort((a, b) => b.localeCompare(a))
-                  .map(fecha => {
-                    const [year, month, day] = fecha.split('-');
-                    const fechaFormateada = `${day}/${month}/${year}`;
-                    return (
-                      <Select.Option key={fecha} value={fecha}>{fechaFormateada}</Select.Option>
-                    );
-                  })}
-              </Select>
+                options={opcionesFecha}
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+              />
               <Button onClick={limpiarFiltros}>
                 Limpiar
               </Button>

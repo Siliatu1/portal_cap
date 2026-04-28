@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 
@@ -19,40 +18,12 @@ import PanelToderas from './portales/lineas-producto/components/PanelToderas';
 import Dashboard from './portales/horarios-instructoras/components/Dashboard';
 import ProgramacionHorarios from './portales/horarios-instructoras/components/ProgramacionHorarios';
 import VistaAdministrativa from './portales/horarios-instructoras/components/VistaAdministrativa';
+import { AuthProvider, useAuth } from './shared/context/AuthContext';
 
 const LOGIN_PATH = '/cap/cafe';
 
-const getInitialUserData = () => {
-  const savedUserData = localStorage.getItem('userData');
-
-  if (!savedUserData) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(savedUserData);
-  } catch (error) {
-    console.error('Error al cargar datos de sesión:', error);
-    localStorage.removeItem('userData');
-    return null;
-  }
-};
-
-function App() {
-  const [userData, setUserData] = useState(() => getInitialUserData());
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getInitialUserData()));
-
-  const handleLogin = (data) => {
-    setUserData(data);
-    setIsAuthenticated(true);
-    localStorage.setItem('userData', JSON.stringify(data));
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserData(null);
-    localStorage.removeItem('userData');
-  };
+function AppRoutes() {
+  const { isAuthenticated } = useAuth();
 
   // Roles permitidos para acceso a horarios
   const rolesHorariosAdmin = [
@@ -62,12 +33,11 @@ function App() {
   ];
 
   const rolesHorariosInstructor = ['INSTRUCTOR'];
-  const loginElement = <Login onLogin={handleLogin} />;
+  const loginElement = <Login />;
 
   return (
-    <Router>
-      <div className="App">
-        <Routes>
+    <div className="App">
+      <Routes>
           {/* Ruta de Login */}
           <Route 
             path={LOGIN_PATH}
@@ -80,8 +50,8 @@ function App() {
           <Route 
             path="/menu" 
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated} fallback={loginElement}>
-                <MainMenu userData={userData} onLogout={handleLogout} />
+              <ProtectedRoute fallback={loginElement}>
+                <MainMenu />
               </ProtectedRoute>
             } 
           />
@@ -90,8 +60,8 @@ function App() {
           <Route 
             path="/portal/lineas-producto" 
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated} fallback={loginElement}>
-                <AdminPanel userData={userData} onLogout={handleLogout} />
+              <ProtectedRoute fallback={loginElement}>
+                <AdminPanel />
               </ProtectedRoute>
             } 
           />
@@ -99,8 +69,8 @@ function App() {
           <Route 
             path="/portal/lineas-producto/asistencia" 
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated} fallback={loginElement}>
-                <AsistenciaPanel userData={userData} onLogout={handleLogout} />
+              <ProtectedRoute fallback={loginElement}>
+                <AsistenciaPanel />
               </ProtectedRoute>
             } 
           />
@@ -108,8 +78,8 @@ function App() {
           <Route 
             path="/portal/lineas-producto/panel-toderas" 
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated} fallback={loginElement}>
-                <PanelToderas userData={userData} onLogout={handleLogout} />
+              <ProtectedRoute fallback={loginElement}>
+                <PanelToderas />
               </ProtectedRoute>
             } 
           />
@@ -118,13 +88,12 @@ function App() {
           <Route 
             path="/portal/horarios-instructoras/admin" 
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated} fallback={loginElement}>
+              <ProtectedRoute fallback={loginElement}>
                 <RoleGuard 
-                  userData={userData} 
                   allowedRoles={rolesHorariosAdmin}
                   redirectTo="/menu"
                 >
-                  <VistaAdministrativa userData={userData} onLogout={handleLogout} />
+                  <VistaAdministrativa />
                 </RoleGuard>
               </ProtectedRoute>
             } 
@@ -134,13 +103,12 @@ function App() {
           <Route 
             path="/portal/horarios-instructoras/instructor" 
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated} fallback={loginElement}>
+              <ProtectedRoute fallback={loginElement}>
                 <RoleGuard 
-                  userData={userData} 
                   allowedRoles={rolesHorariosInstructor}
                   redirectTo="/menu"
                 >
-                  <Dashboard userData={userData} onLogout={handleLogout} />
+                  <Dashboard />
                 </RoleGuard>
               </ProtectedRoute>
             } 
@@ -149,13 +117,12 @@ function App() {
           <Route 
             path="/portal/horarios-instructoras/instructor/programacion" 
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated} fallback={loginElement}>
+              <ProtectedRoute fallback={loginElement}>
                 <RoleGuard 
-                  userData={userData} 
                   allowedRoles={rolesHorariosInstructor}
                   redirectTo="/menu"
                 >
-                  <ProgramacionHorarios userData={userData} onLogout={handleLogout} />
+                  <ProgramacionHorarios />
                 </RoleGuard>
               </ProtectedRoute>
             } 
@@ -176,9 +143,18 @@ function App() {
               isAuthenticated ? <Navigate to="/menu" replace /> : loginElement
             } 
           />
-        </Routes>
-      </div>
-    </Router>
+      </Routes>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <AppRoutes />
+      </Router>
+    </AuthProvider>
   );
 }
 

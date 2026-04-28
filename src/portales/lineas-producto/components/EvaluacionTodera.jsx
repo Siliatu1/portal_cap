@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useQueryClient } from '@tanstack/react-query';
 import "./formulario_inscripcion.css"; 
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { message, Select } from "antd";
-import { createCapTodera, getBukEmpleadosByDocumento, getCapPdvs } from "../../../services/apiService";
-
-
-const empleadosCache = {};
+import { createCapTodera, getCapPdvs } from "../../../services/apiService";
+import { fetchBukEmpleadoByDocumento } from '../../../services/bukEmpleadosQuery';
 
 const opcionesCargoEvaluar = [
   {
@@ -40,6 +39,7 @@ const opcionesCargoEvaluar = [
 ];
 
 const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
+  const queryClient = useQueryClient();
   const datosCoordinadora = coordinadoraData?.data || coordinadoraData || {};
   const [documento, setDocumento] = useState("");
   const [loading, setLoading] = useState(false);
@@ -49,14 +49,10 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
   const [cargoEvaluar, setCargoEvaluar] = useState("");
   const [mostrarModal, setMostrarModal] = useState(false);
   
-  const cargoCoordinadora = datosCoordinadora.cargo_general || datosCoordinadora.cargo || datosCoordinadora.position || "";
-  const puntoVentaCoordinadora = datosCoordinadora.area_nombre || datosCoordinadora.department || "";
+  const cargoCoordinadora = datosCoordinadora.cargo || "";
+  const puntoVentaCoordinadora = datosCoordinadora.area_nombre || "";
   
-  const nombreLider = datosCoordinadora.nombre || 
-    datosCoordinadora.name ||
-    (datosCoordinadora.first_name && datosCoordinadora.last_name 
-      ? `${datosCoordinadora.first_name} ${datosCoordinadora.last_name}`.trim()
-      : datosCoordinadora.full_name || '');
+  const nombreLider = datosCoordinadora.nombre || "";
   
   const [formData, setFormData] = useState({
     fotoBuk: "",
@@ -78,36 +74,13 @@ const EvaluacionTodera = ({ onBack, onSubmit, coordinadoraData }) => {
       return;
     }
 
-    // Verificar caché primero
-    if (empleadosCache[docTrim]) {
-      const empleadoData = empleadosCache[docTrim];
-      setEmpleado(empleadoData);
-      setFormData({
-        fotoBuk: empleadoData.foto || "",
-        nombres: empleadoData.nombre || "",
-        telefono: empleadoData.Celular.toString() || "",
-        cargo: empleadoData.cargo || "",
-        puntoVenta: empleadoData.area_nombre || puntoVentaCoordinadora,
-        nombreLider: nombreLider
-      });
-      setMensaje({ texto: "✓ Empleado encontrado", tipo: "success" });
-      return;
-    }
-
     setLoading(true);
     setMensaje({ texto: "", tipo: "" });
     
     try {
-      const data = await getBukEmpleadosByDocumento(docTrim);
-      const empleados = data?.data || data;
-      const empleadoData = Array.isArray(empleados) 
-        ? empleados.find(emp => String(emp.document_number) === docTrim)
-        : null;
+      const empleadoData = await fetchBukEmpleadoByDocumento(queryClient, docTrim);
       
       if (empleadoData) {
-        // Guardar en caché
-        empleadosCache[docTrim] = empleadoData;
-        
         setEmpleado(empleadoData);
         setFormData({
           fotoBuk: empleadoData.foto || "",
