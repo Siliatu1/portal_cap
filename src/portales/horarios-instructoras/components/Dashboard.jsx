@@ -1,78 +1,29 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Tag, Button, Modal, Form, Input, Select, Space, Card, Tooltip } from 'antd';
+import { Table, Tag, Button, Modal, Space, Card, Tooltip } from 'antd';
 import { EyeOutlined, DownloadOutlined, EditOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
 import 'antd/dist/reset.css';
 import '../styles/Dashboard.css';
 import { getCapInstructoras, getHorariosInstructoras, updateHorarioInstructora } from '../../../services/apiService';
 import { useAuth } from '../../../shared/context/AuthContext';
-
-const MESES_CORTO  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const MESES_LARGO  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const DIAS_SEMANA  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-
-const MOTIVOS_LABELS = {
-  retroalimentacion: 'Retroalimentación',
-  'acompañamiento':  'Acompañamiento',
-  capacitacion:      'Capacitación',
-  dia_descanso:      'Día de Descanso',
-  visita:            'Visita',
-  induccion:         'Inducción',
-  cubrir_puesto:     'Cubrir Puesto',
-  disponible:        'Disponible',
-  fotos:             'Fotos',
-  escuela_cafe:      'Escuela del Café',
-  sintonizarte:      'Sintonizarte',
-  viaje:             'Viaje',
-  pg:                'P&G',
-  apoyo:             'Apoyo',
-  reunion:           'Reunión',
-  cambio_turno:      'Cambio de Turno',
-  apertura:          'Apertura',
-  lanzamiento:       'Lanzamiento',
-  vacaciones:        'Vacaciones',
-  incapacidad:       'Incapacidad',
-  dia_familia:       'Día de la Familia',
-  permiso_no_remunerado:  'Permiso No Remunerado',
-  licencia_no_remunerada: 'Licencia No Remunerada',
-  licencia_remunerada:    'Licencia Remunerada',
-  licencia_luto:          'Licencia por Luto',
-};
-
-const ACTIVIDAD_A_MOTIVO = Object.fromEntries(
-  Object.entries(MOTIVOS_LABELS).map(([k, v]) => [v, k])
-);
-
-const MOTIVOS_BASICOS     = ['retroalimentacion', 'acompañamiento', 'capacitacion'];
-const MOTIVOS_SIN_HORA    = ['dia_descanso', 'vacaciones'];
-const pad = (n) => String(n).padStart(2, '0');
-const getInitials = (name) => {
-  if (!name) return 'U';
-  const parts = name.split(' ');
-  return parts.length >= 2
-    ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-    : name[0].toUpperCase();
-};
-const formatearFecha        = (f) => f ? `${f.getDate()} ${MESES_CORTO[f.getMonth()]}` : '';
-const getDiaSemana          = (f) => DIAS_SEMANA[f.getDay()];
-const formatearFechaCompleta = (f) =>
-  `${f.getDate()} de ${MESES_LARGO[f.getMonth()]} de ${f.getFullYear()}`;
-const formatearRangoFechas  = (ini, fin) =>
-  ini && fin
-    ? `${ini.getDate()} - ${fin.getDate()} ${MESES_CORTO[ini.getMonth()]}`
-    : '';
-
-/** Calcula lunes y domingo de la semana objetivo según offset */
-const calcularRangoSemana = (offset = 0) => {
-  const hoy        = new Date();
-  const diaSemana  = hoy.getDay();
-  const diasHasta  = diaSemana === 0 ? 1 : diaSemana === 1 ? 7 : 8 - diaSemana;
-  const lunes      = new Date(hoy);
-  lunes.setDate(hoy.getDate() + diasHasta + offset * 7);
-  const domingo    = new Date(lunes);
-  domingo.setDate(lunes.getDate() + 6);
-  return { lunes, domingo };
-};
+import DashboardEditModal from './DashboardEditModal';
+import {
+  buildBaseUser,
+  buildEditFormData,
+  buildHorarioPayload,
+  buildHorariosState,
+  buildSemanaQuery,
+  extractPuntosVenta,
+  formatearFecha,
+  formatearFechaCompleta,
+  formatearRangoFechas,
+  getActividadTagColor,
+  getDiaSemana,
+  getInitials,
+  INITIAL_MODAL_FORM,
+  MOTIVOS_BASICOS,
+  validateEditForm,
+} from './dashboard.helpers';
 
 
 function Dashboard() {
@@ -96,10 +47,7 @@ function Dashboard() {
   const [eventoEditar,      setEventoEditar]       = useState(null);
   const [showMoreMotivos,   setShowMoreMotivos]    = useState(false);
   const [filaExpandida,     setFilaExpandida]      = useState(null);
-  const [formDataModal,     setFormDataModal]      = useState({
-    puntoVenta: '', horaInicio: '', horaFin: '',
-    motivo: '', detalleCubrir: '', detalleOtro: '',
-  });
+  const [formDataModal,     setFormDataModal]      = useState(INITIAL_MODAL_FORM);
 
   const pdvCargados = useRef(false);
 
@@ -110,16 +58,8 @@ function Dashboard() {
       return;
     }
 
-    const doc = datosUsuario?.document_number || '';
-    const nombre = datosUsuario?.nombre || '';
-
-    const baseUser = {
-      documento: doc,
-      nombre,
-      correo:   datosUsuario?.correo || '',
-      telefono: datosUsuario?.Celular || '',
-      foto:     datosUsuario?.foto     || '',
-    };
+    const baseUser = buildBaseUser(datosUsuario);
+    const doc = baseUser.documento;
 
     setUser(baseUser);
 
@@ -143,20 +83,9 @@ function Dashboard() {
     getCapInstructoras(`filter[documento][$eq]=${doc}&populate[cap_pdvs]=*`)
       .then(pdvRes => {
         if (pdvRes?.data?.length > 0) {
-          const instructora = pdvRes.data.find(
-            inst => String(inst.attributes.documento).trim() === String(doc).trim()
-          );
-          if (instructora?.attributes.cap_pdvs?.data) {
-            const activos = instructora.attributes.cap_pdvs.data
-              .filter(p => p.attributes?.activo === true)
-              .map(p => ({ id: p.id, nombre: p.attributes.nombre }))
-              .sort((a, b) => a.nombre.localeCompare(b.nombre));
-            
-            setPuntosVenta(activos);
-
-            
-            localStorage.setItem(pdvCacheKey, JSON.stringify(activos));
-          }
+          const activos = extractPuntosVenta(pdvRes.data, doc);
+          setPuntosVenta(activos);
+          localStorage.setItem(pdvCacheKey, JSON.stringify(activos));
         }
         pdvCargados.current = true;
       })
@@ -172,62 +101,22 @@ function Dashboard() {
   const cargarHorarios = useCallback(async (documento, offset) => {
     if (!documento) return;
 
-    const { lunes, domingo } = calcularRangoSemana(offset);
+    const semana = buildSemanaQuery(offset);
 
-    const fechaInicioStr = `${lunes.getFullYear()}-${pad(lunes.getMonth()+1)}-${pad(lunes.getDate())}`;
-    const fechaFinStr    = `${domingo.getFullYear()}-${pad(domingo.getMonth()+1)}-${pad(domingo.getDate())}`;
-
-    // Número de semana en el mes
-    const primerDia     = new Date(lunes.getFullYear(), lunes.getMonth(), 1);
-    const diasHastaL    = (8 - primerDia.getDay()) % 7;
-    const numeroSemana  = Math.ceil((lunes.getDate() - diasHastaL) / 7) + 1;
-
-    console.log(' Cargando horarios:', { documento, fechaInicio: fechaInicioStr, fechaFin: fechaFinStr });
+    console.log(' Cargando horarios:', { documento, fechaInicio: semana.fechaInicioStr, fechaFin: semana.fechaFinStr });
 
     try {
       const data = await getHorariosInstructoras(
         `filters[documento][$eq]=${documento}`
-        + `&filters[fecha][$gte]=${fechaInicioStr}`
-        + `&filters[fecha][$lte]=${fechaFinStr}`
+        + `&filters[fecha][$gte]=${semana.fechaInicioStr}`
+        + `&filters[fecha][$lte]=${semana.fechaFinStr}`
         + `&pagination[pageSize]=40000`
       );
 
-      if (data?.data?.length > 0) {
-        const detalles = data.data
-          .map(item => {
-            const [year, month, day] = item.attributes.fecha.split('-').map(Number);
-            return {
-              apiId:      item.id,
-              fecha:      new Date(year, month - 1, day),
-              pdv:        item.attributes.pdv_nombre,
-              actividad:  item.attributes.actividad,
-              horaInicio: item.attributes.hora_inicio,
-              horaFin:    item.attributes.hora_fin,
-            };
-          })
-          .sort((a, b) => a.fecha - b.fecha);
-
-        const totalHoras = detalles.reduce((sum, d) => {
-          if (!d.horaInicio || !d.horaFin || d.horaInicio === '00:00:00') return sum;
-          const [hi, mi] = d.horaInicio.split(':').map(Number);
-          const [hf, mf] = d.horaFin.split(':').map(Number);
-          return sum + (hf * 60 + mf - hi * 60 - mi) / 60;
-        }, 0);
-
-        setHorariosDetalles(detalles);
-        setHorariosData([{
-          key: 'semana-actual',
-          numeroSemana,
-          fechaInicio: lunes,
-          fechaFin:    domingo,
-          totalHoras,
-        }]);
-      } else {
-        setHorariosDetalles([]);
-        setHorariosData([]);
-      }
-
-      setInfoSemana({ numero: numeroSemana, fechaInicio: lunes, fechaFin: domingo });
+      const { detalles, filas, infoSemana: info } = buildHorariosState(data?.data, semana);
+      setHorariosDetalles(detalles);
+      setHorariosData(filas);
+      setInfoSemana(info);
     } catch (err) {
       console.error('Error al cargar horarios:', err);
       setHorariosDetalles([]);
@@ -245,74 +134,52 @@ function Dashboard() {
   const handleVer = (semana) => { setSemanaPreview(semana); setShowPreviewModal(true); };
 
   const handleEditarActividad = (detalle) => {
-    const pdvEncontrado  = puntosVenta.find(p => p.nombre === detalle.pdv);
-    const motivo         = ACTIVIDAD_A_MOTIVO[detalle.actividad] || 'otro';
-    const detalleOtro    = !ACTIVIDAD_A_MOTIVO[detalle.actividad] ? detalle.actividad : '';
-
-    setFormDataModal({
-      puntoVenta:   pdvEncontrado ? String(pdvEncontrado.id) : '',
-      horaInicio:   detalle.horaInicio?.substring(0, 5) ?? '',
-      horaFin:      detalle.horaFin?.substring(0, 5) ?? '',
-      motivo,
-      detalleCubrir: '',
-      detalleOtro,
-    });
-    setShowMoreMotivos(!MOTIVOS_BASICOS.includes(motivo));
+    const { formData, showMoreMotivos: expanded } = buildEditFormData(detalle, puntosVenta);
+    setFormDataModal(formData);
+    setShowMoreMotivos(expanded);
     setEventoEditar(detalle);
     setModalEditar(true);
-  };
-
-  const handleInputChangeModal = (e) => {
-    const { name, value } = e.target;
-    setFormDataModal(prev => ({ ...prev, [name]: value }));
   };
 
   const handleCerrarModal = () => {
     setModalEditar(false);
     setEventoEditar(null);
-    setFormDataModal({ puntoVenta: '', horaInicio: '', horaFin: '', motivo: '', detalleCubrir: '', detalleOtro: '' });
+    setFormDataModal(INITIAL_MODAL_FORM);
     setShowMoreMotivos(false);
+  };
+
+  const handleFieldChange = (field, value) => {
+    setFormDataModal((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSelectMotivo = (motivo) => {
+    setFormDataModal((prev) => ({
+      ...prev,
+      motivo,
+      detalleCubrir: motivo !== 'cubrir_puesto' ? '' : prev.detalleCubrir,
+      detalleOtro: motivo !== 'otro' ? '' : prev.detalleOtro,
+    }));
+
+    if (MOTIVOS_BASICOS.includes(motivo)) {
+      setShowMoreMotivos(false);
+    }
   };
 
   const handleGuardarEdicionModal = async () => {
     if (!eventoEditar) return;
 
-    if (!formDataModal.puntoVenta) { alert('Por favor selecciona un punto de venta'); return; }
-    if (formDataModal.motivo === 'cubrir_puesto' && !formDataModal.detalleCubrir) {
-      alert('Por favor especifica a quién vas a cubrir'); return;
-    }
-    if (formDataModal.motivo === 'otro' && !formDataModal.detalleOtro) {
-      alert('Por favor especifica el detalle de la actividad'); return;
-    }
-    if (!MOTIVOS_SIN_HORA.includes(formDataModal.motivo)) {
-      if (!formDataModal.horaInicio || !formDataModal.horaFin) {
-        alert('Por favor ingresa hora de inicio y fin'); return;
-      }
-      const inicio = new Date(`2000-01-01T${formDataModal.horaInicio}`);
-      const fin    = new Date(`2000-01-01T${formDataModal.horaFin}`);
-      if (fin <= inicio) { alert('La hora de fin debe ser mayor a la hora de inicio'); return; }
+    const validationError = validateEditForm(formDataModal);
+    if (validationError) {
+      alert(validationError);
+      return;
     }
 
-    const pdvObj       = puntosVenta.find(p => String(p.id) === formDataModal.puntoVenta);
-    const pdvNombre    = pdvObj?.nombre ?? '';
-    const actividad    = formDataModal.motivo === 'otro'
-      ? formDataModal.detalleOtro
-      : (MOTIVOS_LABELS[formDataModal.motivo] ?? formDataModal.motivo);
-    const horaInicio   = MOTIVOS_SIN_HORA.includes(formDataModal.motivo) ? '00:00:00' : `${formDataModal.horaInicio}:00`;
-    const horaFin      = MOTIVOS_SIN_HORA.includes(formDataModal.motivo) ? '00:00:00' : `${formDataModal.horaFin}:00`;
-    const { fecha }    = eventoEditar;
-    const fechaStr     = `${fecha.getFullYear()}-${pad(fecha.getMonth()+1)}-${pad(fecha.getDate())}`;
-
-    const payload = {
-      data: {
-        pdv_nombre:  pdvNombre,
-        fecha:       fechaStr,
-        hora_inicio: horaInicio,
-        hora_fin:    horaFin,
-        actividad,
-        documento:   String(user.documento),
-      },
-    };
+    const { payload, pdvNombre, actividad, horaInicio, horaFin } = buildHorarioPayload(
+      formDataModal,
+      eventoEditar,
+      user.documento,
+      puntosVenta
+    );
 
     console.log(' Actualizando actividad:', { apiId: eventoEditar.apiId, payload });
 
@@ -512,13 +379,7 @@ function Dashboard() {
                           { title: 'PDV',    dataIndex: 'pdv',       key: 'pdv' },
                           {
                             title: 'Actividad', dataIndex: 'actividad', key: 'actividad',
-                            render: act => {
-                              let color = 'blue';
-                              if (act.includes('Retroalimentación')) color = 'geekblue';
-                              else if (act.includes('Capacitación'))  color = 'purple';
-                              else if (act.includes('Descanso'))      color = 'volcano';
-                              return <Tag color={color}>{act}</Tag>;
-                            },
+                            render: act => <Tag color={getActividadTagColor(act)}>{act}</Tag>,
                           },
                           {
                             title: 'Horario', key: 'horario',
@@ -667,95 +528,17 @@ function Dashboard() {
         )}
       </Modal>
 
-      {/* Modal de Edición */}
-      <Modal
-        title="Editar Actividad"
+      <DashboardEditModal
         open={modalEditar}
-        onCancel={handleCerrarModal}
-        footer={[
-          <Button key="cancel" onClick={handleCerrarModal}>Cancelar</Button>,
-          <Button key="save" type="primary" onClick={handleGuardarEdicionModal}
-            className="dashboard-save-btn">
-            Guardar Cambios
-          </Button>,
-        ]}
-        centered width={700}
-      >
-        <Form layout="vertical" className="dashboard-edit-form">
-          <Form.Item label="Punto de Venta">
-            <Select
-              value={formDataModal.puntoVenta || undefined}
-              onChange={v => setFormDataModal(prev => ({ ...prev, puntoVenta: v }))}
-              placeholder="Selecciona un punto de venta" size="large">
-              {puntosVenta.map(p => (
-                <Select.Option key={p.id} value={String(p.id)}>{p.nombre}</Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Space className="dashboard-edit-time-row">
-            <Form.Item label="Hora Inicio" className="dashboard-edit-time-field">
-              <Input type="time" name="horaInicio" value={formDataModal.horaInicio}
-                onChange={handleInputChangeModal}
-                disabled={MOTIVOS_SIN_HORA.includes(formDataModal.motivo)} size="large" />
-            </Form.Item>
-            <Form.Item label="Hora Fin" className="dashboard-edit-time-field">
-              <Input type="time" name="horaFin" value={formDataModal.horaFin}
-                onChange={handleInputChangeModal}
-                disabled={MOTIVOS_SIN_HORA.includes(formDataModal.motivo)} size="large" />
-            </Form.Item>
-          </Space>
-
-          <Form.Item label="Motivo">
-            <Space wrap size="small" className="dashboard-motivos-space">
-              {MOTIVOS_BASICOS.map(m => (
-                <Button key={m}
-                  type={formDataModal.motivo === m ? 'primary' : 'default'}
-                  onClick={() => {
-                    setFormDataModal(prev => ({ ...prev, motivo: m, detalleCubrir: '', detalleOtro: '' }));
-                    setShowMoreMotivos(false);
-                  }}
-                  className={formDataModal.motivo === m ? 'dashboard-motivo-btn dashboard-motivo-btn--active' : 'dashboard-motivo-btn'}>
-                  {MOTIVOS_LABELS[m]}
-                </Button>
-              ))}
-
-              {showMoreMotivos && Object.entries(MOTIVOS_LABELS)
-                .filter(([k]) => !MOTIVOS_BASICOS.includes(k))
-                .map(([k, label]) => (
-                  <Button key={k}
-                    type={formDataModal.motivo === k ? 'primary' : 'default'}
-                    onClick={() => setFormDataModal(prev => ({
-                      ...prev, motivo: k,
-                      detalleCubrir: k !== 'cubrir_puesto' ? '' : prev.detalleCubrir,
-                      detalleOtro:   k !== 'otro'          ? '' : prev.detalleOtro,
-                    }))}
-                    className={formDataModal.motivo === k ? 'dashboard-motivo-btn dashboard-motivo-btn--active' : 'dashboard-motivo-btn'}>
-                    {label}
-                  </Button>
-                ))}
-
-              <Button type="link" onClick={() => setShowMoreMotivos(v => !v)}
-                icon={showMoreMotivos ? <UpOutlined /> : <DownOutlined />}>
-                {showMoreMotivos ? 'Ver menos' : 'Ver más opciones'}
-              </Button>
-            </Space>
-          </Form.Item>
-
-          {formDataModal.motivo === 'cubrir_puesto' && (
-            <Form.Item label="¿A quién vas a cubrir?">
-              <Input name="detalleCubrir" value={formDataModal.detalleCubrir}
-                onChange={handleInputChangeModal} placeholder="Nombre de la persona" size="large" />
-            </Form.Item>
-          )}
-          {formDataModal.motivo === 'otro' && (
-            <Form.Item label="Especifica el motivo">
-              <Input name="detalleOtro" value={formDataModal.detalleOtro}
-                onChange={handleInputChangeModal} placeholder="Describe la actividad" size="large" />
-            </Form.Item>
-          )}
-        </Form>
-      </Modal>
+        formData={formDataModal}
+        puntosVenta={puntosVenta}
+        showMoreMotivos={showMoreMotivos}
+        onClose={handleCerrarModal}
+        onSave={handleGuardarEdicionModal}
+        onFieldChange={handleFieldChange}
+        onSelectMotivo={handleSelectMotivo}
+        onToggleMotivos={() => setShowMoreMotivos((prev) => !prev)}
+      />
     </div>
   );
 }
