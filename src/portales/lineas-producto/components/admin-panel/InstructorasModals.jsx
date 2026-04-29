@@ -145,7 +145,6 @@ function GestionInstructoraModal({
     </Modal>
   );
 }
-
 function InstructorasModals({ forms, data, loading, onActions }) {
   return (
     <>

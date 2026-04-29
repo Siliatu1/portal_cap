@@ -132,7 +132,7 @@ function AppRoutes() {
           <Route 
             path="/" 
             element={
-              isAuthenticated ? <Navigate to="sof/menu" replace /> : loginElement
+              isAuthenticated ? <Navigate to="/menu" replace /> : loginElement
             } 
           />
 
@@ -140,7 +140,7 @@ function AppRoutes() {
           <Route 
             path="*" 
             element={
-              isAuthenticated ? <Navigate to="sof/menu" replace /> : loginElement
+              isAuthenticated ? <Navigate to="/menu" replace /> : loginElement
             } 
           />
       </Routes>
