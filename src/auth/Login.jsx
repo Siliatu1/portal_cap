@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./login.css";
 import { loginByDocumento } from "../services/apiService";
 import { useAuth } from "../shared/context/AuthContext";
+import { validateUserAccess } from "./authRoles";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -27,6 +28,17 @@ const Login = () => {
         // La API puede retornar { data: {...} } o directamente {...}
         const data = rawData;
         
+        // Validar que el usuario tenga un rol autorizado
+        const validationResult = validateUserAccess(data);
+        if (!validationResult.authorized) {
+          setMensaje({ 
+            texto: validationResult.message, 
+            tipo: "error" 
+          });
+          setLoading(false);
+          return;
+        }
+        
         setMensaje({ texto: "Documento validado correctamente", tipo: "success" });
 
         setTimeout(() => {
@@ -34,19 +46,6 @@ const Login = () => {
           
           // Determinar a dónde redirigir basado en el documento
           const documentoUsuario = data?.document_number || '';
-          
-          // Documentos autorizados para PanelToderas (instructoras de evaluación todera)
-          const documentosToderas = [
-            '30386710', '52395525', '52422155', '52525496', '1020758053',
-            '1077845053', '39276283', '35416150', '22797275', '49792488',
-            '52701678', '28549413', '1019005012', '49606652', '53075347',
-            '1079605138', '21032351', '52439552', '52962339', '1116547316',
-            '23876197', '66681589', '52799048', '1075538331', '49776128',
-            '37550615', '37339972', '1019073170'
-          ];
-          
-          // Documento autorizado para AsistenciaPanel (Escuela del Café)
-          const documentoAsistencia = '35512822';
           
           // Si es una instructora de evaluación todera
           const documentoNormalizado = normalizarDocumento(documentoUsuario);
