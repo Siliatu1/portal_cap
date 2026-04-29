@@ -1,27 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Modal } from 'antd';
 import 'antd/dist/reset.css';
 import '../styles/ProgramacionHorarios.css';
-import {
-  createHorarioInstructora,
-  getHorariosInstructoras,
-  getPdvIps,
-  updateHorarioInstructora
-} from '../../../services/apiService';
-import { useAuth } from '../../../shared/context/AuthContext';
 import ProgramacionHorariosModal from './ProgramacionHorariosModal';
+import { createHorario, updateHorario } from '../services/horariosInstructoras.service';
+import { useProgramacionHorariosData } from '../hooks/useProgramacionHorariosData';
 import {
   buildDescansoEvent,
   buildDescansoPayload,
   buildEventoLocal,
   buildHorarioApiPayload,
   buildModalFormFromEvento,
-  buildProgramacionFromApi,
   calculateHorasDia,
   calculateTotalHorasSemana,
-  createEmptyProgramacionSemanal,
-  createProgramacionStoragePayload,
   DIAS_SEMANA,
   DIAS_SEMANA_LABEL,
   EXPANDABLE_MOTIVOS,
@@ -29,8 +21,6 @@ import {
   formatFecha,
   formatFechaCompleta,
   getActividadLabel,
-  getFechasSemana,
-  getInfoSemana,
   getInitials,
   INITIAL_MODAL_FORM,
   validateEventoForm,
@@ -38,143 +28,36 @@ import {
 
 function ProgramacionHorarios() {
   const navigate = useNavigate();
-  const { userData, logout } = useAuth();
-    const [user, setUser] = useState(null);
-    const [puntosVenta, setPuntosVenta] = useState([]);
-    const [loadingPuntos, setLoadingPuntos] = useState(true);
-    const [showProfileModal, setShowProfileModal] = useState(false);
-    const [modalEditar, setModalEditar] = useState(false);
-    const [diaSeleccionado, setDiaSeleccionado] = useState(null);
-    const [eventoEditarModal, setEventoEditarModal] = useState(null);
-    const [formDataModal, setFormDataModal] = useState(INITIAL_MODAL_FORM);
-    const [showMoreMotivosModal, setShowMoreMotivosModal] = useState(false);
-    const [guardandoDia, setGuardandoDia] = useState(false);
-    const [semanaOffset, setSemanaOffset] = useState(0);
-    const [programacionSemanal, setProgramacionSemanal] = useState(createEmptyProgramacionSemanal);
-    const [pdvSearchText, setPdvSearchText] = useState('');
-    const [showPdvDropdown, setShowPdvDropdown] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [modalEditar, setModalEditar] = useState(false);
+  const [diaSeleccionado, setDiaSeleccionado] = useState(null);
+  const [eventoEditarModal, setEventoEditarModal] = useState(null);
+  const [formDataModal, setFormDataModal] = useState(INITIAL_MODAL_FORM);
+  const [showMoreMotivosModal, setShowMoreMotivosModal] = useState(false);
+  const [guardandoDia, setGuardandoDia] = useState(false);
+  const [semanaOffset, setSemanaOffset] = useState(0);
+  const [pdvSearchText, setPdvSearchText] = useState('');
+  const [showPdvDropdown, setShowPdvDropdown] = useState(false);
+  const {
+    user,
+    fechasSemana,
+    infoSemana,
+    puntosVenta,
+    programacionSemanal,
+    setProgramacionSemanal,
+    loadingPuntos,
+    logout,
+  } = useProgramacionHorariosData(semanaOffset);
 
-    const fechasSemana = useMemo(() => getFechasSemana(semanaOffset), [semanaOffset]);
-    const infoSemana = useMemo(() => getInfoSemana(fechasSemana), [fechasSemana]);
-    const totalHorasSemana = useMemo(
-      () => calculateTotalHorasSemana(programacionSemanal),
-      [programacionSemanal]
-    );
-    const pdvsFiltrados = useMemo(
-      () => filterPdvs(pdvSearchText, puntosVenta),
-      [pdvSearchText, puntosVenta]
-    );
-    const storageKey = useMemo(() => {
-      if (!user?.documento || fechasSemana.length === 0) {
-        return null;
-      }
+  const totalHorasSemana = useMemo(
+    () => calculateTotalHorasSemana(programacionSemanal),
+    [programacionSemanal]
+  );
+  const pdvsFiltrados = useMemo(
+    () => filterPdvs(pdvSearchText, puntosVenta),
+    [pdvSearchText, puntosVenta]
+  );
 
-      return `programacion_${user.documento}_${fechasSemana[0].toISOString().slice(0, 10)}`;
-    }, [fechasSemana, user?.documento]);
-
-    useEffect(() => {
-      if (!userData) {
-        logout();
-        return;
-      }
-
-      setUser({
-        documento: userData?.document_number || '',
-        nombre: userData?.nombre || '',
-        correo: userData?.correo || '',
-        telefono: userData?.Celular || '',
-        cargo: userData?.cargo || '',
-        foto: userData?.foto || ''
-      });
-    }, [logout, userData]);
-
-    useEffect(() => {
-      const cargarPuntosVenta = async () => {
-        try {
-          const response = await getPdvIps('pagination[pageSize]=1000');
-          const items = Array.isArray(response?.data) ? response.data : [];
-
-          setPuntosVenta(
-            items
-              .map((pdv) => ({
-                id: pdv.id,
-                nombre: pdv.attributes?.nombre || pdv.nombre || ''
-              }))
-              .filter((pdv) => pdv.nombre)
-              .sort((a, b) => a.nombre.localeCompare(b.nombre))
-          );
-        } catch (error) {
-          console.error('Error al cargar puntos de venta:', error);
-          setPuntosVenta([]);
-        } finally {
-          setLoadingPuntos(false);
-        }
-      };
-
-      cargarPuntosVenta();
-    }, []);
-
-    useEffect(() => {
-      if (!user?.documento || fechasSemana.length === 0) {
-        return;
-      }
-
-      const cargarProgramacion = async () => {
-        try {
-          const fechaInicio = fechasSemana[0].toISOString().slice(0, 10);
-          const fechaFin = fechasSemana[6].toISOString().slice(0, 10);
-          const response = await getHorariosInstructoras(
-            `filters[documento][$eq]=${user.documento}&filters[fecha][$gte]=${fechaInicio}&filters[fecha][$lte]=${fechaFin}&pagination[pageSize]=40000`
-          );
-
-          if (Array.isArray(response?.data) && response.data.length > 0) {
-            setProgramacionSemanal(buildProgramacionFromApi(response.data, fechasSemana));
-            return;
-          }
-
-          if (storageKey) {
-            const localData = localStorage.getItem(storageKey);
-            if (localData) {
-              const payload = JSON.parse(localData);
-              setProgramacionSemanal(payload?.programacion || createEmptyProgramacionSemanal());
-              return;
-            }
-          }
-
-          setProgramacionSemanal(createEmptyProgramacionSemanal());
-        } catch (error) {
-          console.error('Error al cargar programación:', error);
-
-          if (storageKey) {
-            const localData = localStorage.getItem(storageKey);
-            if (localData) {
-              try {
-                const payload = JSON.parse(localData);
-                setProgramacionSemanal(payload?.programacion || createEmptyProgramacionSemanal());
-                return;
-              } catch (parseError) {
-                console.error('Error al leer respaldo local:', parseError);
-              }
-            }
-          }
-
-          setProgramacionSemanal(createEmptyProgramacionSemanal());
-        }
-      };
-
-      cargarProgramacion();
-    }, [fechasSemana, storageKey, user?.documento]);
-
-    useEffect(() => {
-      if (!storageKey) {
-        return;
-      }
-
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify(createProgramacionStoragePayload(programacionSemanal, fechasSemana))
-      );
-    }, [fechasSemana, programacionSemanal, storageKey]);
 
     const resetModalState = () => {
       setModalEditar(false);
@@ -271,9 +154,9 @@ function ProgramacionHorarios() {
         let idAPI = eventoEditarModal?.idAPI || null;
 
         if (idAPI) {
-          await updateHorarioInstructora(idAPI, datosAPI);
+          await updateHorario(idAPI, datosAPI);
         } else {
-          const response = await createHorarioInstructora(datosAPI);
+          const response = await createHorario(datosAPI);
           idAPI = response?.data?.id || response?.id || Date.now();
         }
 
@@ -318,7 +201,7 @@ function ProgramacionHorarios() {
       try {
         const fecha = fechasSemana[index];
         const payload = buildDescansoPayload(fecha, user.documento);
-        const response = await createHorarioInstructora(payload);
+        const response = await createHorario(payload);
         const eventoDescanso = buildDescansoEvent(response?.data?.id || response?.id || Date.now());
 
         setProgramacionSemanal((prev) => ({
@@ -642,4 +525,3 @@ function ProgramacionHorarios() {
   }
 
 export default ProgramacionHorarios;
-

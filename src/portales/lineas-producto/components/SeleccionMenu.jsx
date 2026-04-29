@@ -1,5 +1,5 @@
 import React from "react";
-import "./seleccion_menu.css";
+import "../styles/seleccion_menu.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
 const SeleccionMenu = ({

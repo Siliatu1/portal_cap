@@ -1,207 +1,33 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Tag, Button, Modal, Space, Card, Tooltip } from 'antd';
 import { EyeOutlined, DownloadOutlined, EditOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
 import 'antd/dist/reset.css';
 import '../styles/Dashboard.css';
-import { getCapInstructoras, getHorariosInstructoras, updateHorarioInstructora } from '../../../services/apiService';
-import { useAuth } from '../../../shared/context/AuthContext';
 import DashboardEditModal from './DashboardEditModal';
 import {
-  buildBaseUser,
-  buildEditFormData,
-  buildHorarioPayload,
-  buildHorariosState,
-  buildSemanaQuery,
-  extractPuntosVenta,
   formatearFecha,
   formatearFechaCompleta,
   formatearRangoFechas,
   getActividadTagColor,
   getDiaSemana,
   getInitials,
-  INITIAL_MODAL_FORM,
-  MOTIVOS_BASICOS,
-  validateEditForm,
 } from './dashboard.helpers';
+import { useDashboardController } from '../hooks/useDashboardController';
 
 
 function Dashboard() {
   const navigate = useNavigate();
-  const { userData, logout } = useAuth();
-
-  const [user, setUser]                   = useState(null);
-  const [semanaOffset, setSemanaOffset]   = useState(0);
-
-
-  const [horariosDetalles, setHorariosDetalles] = useState([]);  
-  const [horariosData,     setHorariosData]     = useState([]);
-  const [infoSemana,       setInfoSemana]        = useState(null);
-  const [puntosVenta,      setPuntosVenta]       = useState([]);
-
-  
-  const [showProfileModal,  setShowProfileModal]  = useState(false);
-  const [showPreviewModal,  setShowPreviewModal]  = useState(false);
-  const [semanaPreview,     setSemanaPreview]      = useState(null);
-  const [modalEditar,       setModalEditar]        = useState(false);
-  const [eventoEditar,      setEventoEditar]       = useState(null);
-  const [showMoreMotivos,   setShowMoreMotivos]    = useState(false);
-  const [filaExpandida,     setFilaExpandida]      = useState(null);
-  const [formDataModal,     setFormDataModal]      = useState(INITIAL_MODAL_FORM);
-
-  const pdvCargados = useRef(false);
-
-  useEffect(() => {
-    const datosUsuario = userData;
-    if (!datosUsuario) {
-      logout();
-      return;
-    }
-
-    const baseUser = buildBaseUser(datosUsuario);
-    const doc = baseUser.documento;
-
-    setUser(baseUser);
-
-    if (!doc) return;
-
-    const pdvCacheKey = `pdv_${doc}`;
-    const cachedPDV = localStorage.getItem(pdvCacheKey);
-    
-    if (cachedPDV && !pdvCargados.current) {
-      const pdvData = JSON.parse(cachedPDV);
-      setPuntosVenta(pdvData);
-      pdvCargados.current = true;
-      return;
-    }
-
-    if (pdvCargados.current) {
-      return; // Ya se cargaron en esta sesión
-    }
-
-    // Cargar PDV desde la API solo si no están en cache
-    getCapInstructoras(`filter[documento][$eq]=${doc}&populate[cap_pdvs]=*`)
-      .then(pdvRes => {
-        if (pdvRes?.data?.length > 0) {
-          const activos = extractPuntosVenta(pdvRes.data, doc);
-          setPuntosVenta(activos);
-          localStorage.setItem(pdvCacheKey, JSON.stringify(activos));
-        }
-        pdvCargados.current = true;
-      })
-      .catch(err => {
-        console.error('Error al cargar puntos de venta:', err);
-        pdvCargados.current = true;
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [logout, userData]);
-
-  // ── EFECTO 2: Horarios — se recarga cuando cambia el offset ─────────────────
-  // Usa el documento directamente de `user`; NO re-dispara la carga de PDV.
-  const cargarHorarios = useCallback(async (documento, offset) => {
-    if (!documento) return;
-
-    const semana = buildSemanaQuery(offset);
-
-    console.log(' Cargando horarios:', { documento, fechaInicio: semana.fechaInicioStr, fechaFin: semana.fechaFinStr });
-
-    try {
-      const data = await getHorariosInstructoras(
-        `filters[documento][$eq]=${documento}`
-        + `&filters[fecha][$gte]=${semana.fechaInicioStr}`
-        + `&filters[fecha][$lte]=${semana.fechaFinStr}`
-        + `&pagination[pageSize]=40000`
-      );
-
-      const { detalles, filas, infoSemana: info } = buildHorariosState(data?.data, semana);
-      setHorariosDetalles(detalles);
-      setHorariosData(filas);
-      setInfoSemana(info);
-    } catch (err) {
-      console.error('Error al cargar horarios:', err);
-      setHorariosDetalles([]);
-      setHorariosData([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!user?.documento) return;
-    cargarHorarios(user.documento, semanaOffset);
-  }, [user?.documento, semanaOffset, cargarHorarios]);
-
-  const totalHoras = horariosData.reduce((s, i) => s + i.totalHoras, 0);
-
-  const handleVer = (semana) => { setSemanaPreview(semana); setShowPreviewModal(true); };
-
-  const handleEditarActividad = (detalle) => {
-    const { formData, showMoreMotivos: expanded } = buildEditFormData(detalle, puntosVenta);
-    setFormDataModal(formData);
-    setShowMoreMotivos(expanded);
-    setEventoEditar(detalle);
-    setModalEditar(true);
-  };
-
-  const handleCerrarModal = () => {
-    setModalEditar(false);
-    setEventoEditar(null);
-    setFormDataModal(INITIAL_MODAL_FORM);
-    setShowMoreMotivos(false);
-  };
-
-  const handleFieldChange = (field, value) => {
-    setFormDataModal((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSelectMotivo = (motivo) => {
-    setFormDataModal((prev) => ({
-      ...prev,
-      motivo,
-      detalleCubrir: motivo !== 'cubrir_puesto' ? '' : prev.detalleCubrir,
-      detalleOtro: motivo !== 'otro' ? '' : prev.detalleOtro,
-    }));
-
-    if (MOTIVOS_BASICOS.includes(motivo)) {
-      setShowMoreMotivos(false);
-    }
-  };
-
-  const handleGuardarEdicionModal = async () => {
-    if (!eventoEditar) return;
-
-    const validationError = validateEditForm(formDataModal);
-    if (validationError) {
-      alert(validationError);
-      return;
-    }
-
-    const { payload, pdvNombre, actividad, horaInicio, horaFin } = buildHorarioPayload(
-      formDataModal,
-      eventoEditar,
-      user.documento,
-      puntosVenta
-    );
-
-    console.log(' Actualizando actividad:', { apiId: eventoEditar.apiId, payload });
-
-    try {
-      await updateHorarioInstructora(eventoEditar.apiId, payload);
-
-      setHorariosDetalles(prev =>
-        prev.map(d =>
-          d === eventoEditar
-            ? { ...d, pdv: pdvNombre, actividad, horaInicio, horaFin }
-            : d
-        )
-      );
-      setModalEditar(false);
-      setEventoEditar(null);
-      alert('✅ Actividad actualizada exitosamente');
-    } catch (err) {
-      console.error('Error al actualizar:', err);
-      alert('❌ Error al guardar los cambios. Por favor intenta nuevamente.');
-    }
-  };
-
+  const { user, data, ui, actions } = useDashboardController();
+  const { puntosVenta, horariosDetalles, horariosData, infoSemana, totalHoras } = data;
+  const {
+    showProfileModal,
+    showPreviewModal,
+    semanaPreview,
+    modalEditar,
+    showMoreMotivos,
+    filaExpandida,
+    formDataModal,
+  } = ui;
 
   const handleDescargarPDF = (semana) => {
     const documentStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
@@ -260,10 +86,10 @@ function Dashboard() {
       <nav className="navbar">
         <div className="navbar-content">
           <div className="navbar-left">
-            <button className="profile-button-avatar" onClick={() => setShowProfileModal(true)}>
+            <button className="profile-button-avatar" onClick={() => actions.setShowProfileModal(true)}>
               {user?.foto
                 ? <img src={user.foto} alt="Perfil" className="profile-avatar"
-                    onError={() => setUser(prev => ({ ...prev, foto: '' }))} />
+                    onError={(event) => { event.currentTarget.style.display = 'none'; }} />
                 : <div className="profile-avatar-initials">{getInitials(user?.nombre)}</div>}
             </button>
             <div className="navbar-titles">
@@ -318,7 +144,7 @@ function Dashboard() {
             </div>
             <div className="table-nav-group">
               <button className="btn-semana-nav"
-                onClick={() => { setSemanaOffset(p => p - 1); setFilaExpandida(null); }}>
+                onClick={() => { actions.cambiarSemana(-1); }}>
                 ← Anterior
               </button>
               <span className="semana-label-nav">
@@ -327,7 +153,7 @@ function Dashboard() {
                   : 'Cargando...'}
               </span>
               <button className="btn-semana-nav"
-                onClick={() => { setSemanaOffset(p => p + 1); setFilaExpandida(null); }}>
+                onClick={() => { actions.cambiarSemana(1); }}>
                 Siguiente →
               </button>
             </div>
@@ -356,7 +182,7 @@ function Dashboard() {
                     <Space size="small">
                       <Tooltip title="Ver detalle">
                         <Button type="text" icon={<EyeOutlined />}
-                          onClick={() => handleVer(record)} className="dashboard-action-btn dashboard-action-btn--view" />
+                          onClick={() => actions.verSemana(record)} className="dashboard-action-btn dashboard-action-btn--view" />
                       </Tooltip>
                       <Tooltip title="Descargar PDF">
                         <Button type="text" icon={<DownloadOutlined />}
@@ -393,7 +219,7 @@ function Dashboard() {
                               <Space size="small">
                                 <Tooltip title="Editar">
                                   <Button type="text" size="small" icon={<EditOutlined />}
-                                    onClick={() => handleEditarActividad(detalle)}
+                                    onClick={() => actions.editarActividad(detalle)}
                                     className="dashboard-action-btn dashboard-action-btn--edit" />
                                 </Tooltip>
                               </Space>
@@ -413,7 +239,7 @@ function Dashboard() {
                   expanded
                     ? <UpOutlined   onClick={e => onExpand(record, e)} className="dashboard-expand-icon" />
                     : <DownOutlined onClick={e => onExpand(record, e)} className="dashboard-expand-icon" />,
-                onExpand:        (expanded, record) => setFilaExpandida(expanded ? record.key : null),
+                onExpand:        (expanded, record) => actions.setFilaExpandida(expanded ? record.key : null),
                 expandedRowKeys: filaExpandida ? [filaExpandida] : [],
               }}
               locale={{ emptyText: 'No hay horarios programados' }}
@@ -425,7 +251,7 @@ function Dashboard() {
 
       {/* Modal de Perfil */}
       {showProfileModal && (
-        <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
+        <div className="modal-overlay" onClick={() => actions.setShowProfileModal(false)}>
           <div className="modal-content profile-modal" onClick={e => e.stopPropagation()}>
             <div className="profile-avatar-modal">
               {user?.foto
@@ -459,9 +285,9 @@ function Dashboard() {
               </div>
             </div>
             <button className="logout-button-modal" onClick={() => {
-              setShowProfileModal(false);
+              actions.setShowProfileModal(false);
               //  Limpiar localStorage al cerrar sesión
-              logout();
+              actions.logout();
               navigate('/cap/cafe', { replace: true });
             }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
@@ -478,7 +304,7 @@ function Dashboard() {
       <Modal
         title="Programación Semanal"
         open={showPreviewModal && !!semanaPreview}
-        onCancel={() => setShowPreviewModal(false)}
+        onCancel={() => actions.setShowPreviewModal(false)}
         footer={null} centered width={900}
       >
         {semanaPreview && (
@@ -533,14 +359,15 @@ function Dashboard() {
         formData={formDataModal}
         puntosVenta={puntosVenta}
         showMoreMotivos={showMoreMotivos}
-        onClose={handleCerrarModal}
-        onSave={handleGuardarEdicionModal}
-        onFieldChange={handleFieldChange}
-        onSelectMotivo={handleSelectMotivo}
-        onToggleMotivos={() => setShowMoreMotivos((prev) => !prev)}
+        onClose={actions.cerrarModal}
+        onSave={actions.guardarEdicion}
+        onFieldChange={actions.fieldChange}
+        onSelectMotivo={actions.selectMotivo}
+        onToggleMotivos={() => actions.setShowMoreMotivos((prev) => !prev)}
       />
     </div>
   );
 }
 
 export default Dashboard;
+

@@ -6,22 +6,14 @@ import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import 'antd/dist/reset.css';
 import '../styles/VistaAdministrativa.css';
-import {
-  getCapInstructoras,
-  getCapPdvs,
-  getHorariosInstructoras,
-  updateHorarioInstructora
-} from '../../../services/apiService';
-import { useAuth } from '../../../shared/context/AuthContext';
+import { updateHorario } from '../services/horariosInstructoras.service';
+import { useVistaAdministrativaData } from '../hooks/useVistaAdministrativaData';
 import EditHorarioModal from './EditHorarioModal';
 import VistaAdministrativaTable from './VistaAdministrativaTable';
 import {
-  ADMIN_ROLES,
   buildEditFormData,
   buildHorarioUpdatePayload,
-  buildInstructorasList,
   buildWeeklyRows,
-  createHorarioRecord,
   EXPANDABLE_MOTIVOS,
   getDefaultLunes,
   getInitials,
@@ -38,117 +30,22 @@ import {
 
 function VistaAdministrativa() {
   const navigate = useNavigate();
-  const { userData, logout } = useAuth();
-  const [user, setUser] = useState(null);
-  const [instructoras, setInstructoras] = useState([]);
   const [instructoraSeleccionada, setInstructoraSeleccionada] = useState('todas');
   const [lineaSeleccionada, setLineaSeleccionada] = useState('todas');
-  const [horariosTodos, setHorariosTodos] = useState([]);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [puntosVenta, setPuntosVenta] = useState([]);
   const [semanaLunes, setSemanaLunes] = useState(getDefaultLunes);
   const [modalEditar, setModalEditar] = useState(false);
   const [horarioEditar, setHorarioEditar] = useState(null);
   const [formDataModal, setFormDataModal] = useState(INITIAL_MODAL_FORM);
   const [showMoreMotivosModal, setShowMoreMotivosModal] = useState(false);
+  const { user, logout, puntosVenta, instructoras, horariosTodos, refetch } = useVistaAdministrativaData({ semanaLunes, lineaSeleccionada });
 
   useEffect(() => {
-    if (!userData) {
-      logout();
-      return;
-    }
-
-    const cargoUsuario = userData?.cargo || '';
-    if (!ADMIN_ROLES.includes(cargoUsuario)) {
+    if (user && !user.isAdmin) {
       navigate('/menu', { replace: true });
-      return;
     }
+  }, [navigate, user]);
 
-    setUser({
-      documento: userData?.document_number || '',
-      nombre: userData?.nombre || '',
-      correo: userData?.correo || '',
-      cargo: cargoUsuario,
-      foto: userData?.foto || ''
-    });
-  }, [logout, navigate, userData]);
-
-  useEffect(() => {
-    const cargarPuntosVenta = async () => {
-      try {
-        const response = await getCapPdvs('pagination[pageSize]=1000&filters[activo][$eq]=true');
-
-        if (response.data?.length) {
-          setPuntosVenta(
-            response.data
-              .map((pdv) => ({ id: pdv.id, nombre: pdv.attributes.nombre }))
-              .sort((a, b) => a.nombre.localeCompare(b.nombre))
-          );
-        }
-      } catch (error) {
-        console.error('Error al cargar puntos de venta:', error);
-      }
-    };
-
-    cargarPuntosVenta();
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const cargarDatos = async () => {
-      try {
-        const fechaInicioStr = dayjs(semanaLunes).format('YYYY-MM-DD');
-        const fechaFinStr = dayjs(shiftWeek(semanaLunes, 6)).format('YYYY-MM-DD');
-        const queryInstructoras = lineaSeleccionada !== 'todas'
-          ? `filters[${lineaSeleccionada}][$eq]=true&pagination[pageSize]=1000`
-          : 'pagination[pageSize]=1000';
-
-        const responseInstructoras = await getCapInstructoras(queryInstructoras);
-        const instructorasData = Array.isArray(responseInstructoras.data) ? responseInstructoras.data : [];
-        const documentosInstructoras = instructorasData
-          .map((inst) => String(inst.attributes.documento || '').trim())
-          .filter(Boolean);
-        const instructorasMap = new Map(
-          instructorasData.map((inst) => {
-            const documento = String(inst.attributes.documento || '').trim();
-            const nombre = inst.attributes.Nombre || inst.attributes.nombre || `Instructora ${documento}`;
-            return [documento, nombre];
-          })
-        );
-
-        const responseHorarios = await getHorariosInstructoras(
-          `filters[fecha][$gte]=${fechaInicioStr}&filters[fecha][$lte]=${fechaFinStr}&pagination[pageSize]=40000`
-        );
-
-        let horariosConDatos = Array.isArray(responseHorarios.data)
-          ? responseHorarios.data.map(createHorarioRecord)
-          : [];
-
-        if (lineaSeleccionada !== 'todas') {
-          horariosConDatos = horariosConDatos.filter((horario) => (
-            documentosInstructoras.includes(String(horario.documento).trim())
-          ));
-        }
-
-        horariosConDatos.sort((a, b) => {
-          if (a.fecha.getTime() !== b.fecha.getTime()) {
-            return a.fecha - b.fecha;
-          }
-
-          return a.horaInicio.localeCompare(b.horaInicio);
-        });
-
-        setHorariosTodos(horariosConDatos);
-        setInstructoras(buildInstructorasList(horariosConDatos, instructorasMap));
-      } catch (error) {
-        console.error('Error al cargar datos:', error);
-        alert('Error al cargar los datos. Por favor intenta nuevamente.');
-      }
-    };
-
-    cargarDatos();
-  }, [lineaSeleccionada, semanaLunes, user]);
 
   const fechasSemana = useMemo(() => getWeekDates(semanaLunes), [semanaLunes]);
   const weekRangeLabel = useMemo(() => getWeekRangeLabel(semanaLunes), [semanaLunes]);
@@ -207,29 +104,11 @@ function VistaAdministrativa() {
       return;
     }
 
-    const { actividad, datosAPI, horaInicioDisplay, horaFinDisplay, puntoVentaNombre } =
-      buildHorarioUpdatePayload(formDataModal, horarioEditar, puntosVenta);
+    const { datosAPI } = buildHorarioUpdatePayload(formDataModal, horarioEditar, puntosVenta);
 
     try {
-      await updateHorarioInstructora(horarioEditar.id, datosAPI);
-
-      setHorariosTodos((prev) => prev.map((horario) => {
-        if (horario.id !== horarioEditar.id) {
-          return horario;
-        }
-
-        return {
-          ...horario,
-          pdv: puntoVentaNombre,
-          actividad,
-          horaInicio: horaInicioDisplay,
-          horaFin: horaFinDisplay,
-          horas: horaInicioDisplay && horaFinDisplay
-            ? (new Date(`2000-01-01T${horaFinDisplay}`) - new Date(`2000-01-01T${horaInicioDisplay}`)) / 3600000
-            : 0,
-          updatedAt: new Date().toISOString()
-        };
-      }));
+      await updateHorario(horarioEditar.id, datosAPI);
+      refetch();
 
       handleCerrarModal();
       Modal.success({ title: 'Éxito', content: 'Horario actualizado exitosamente' });
@@ -518,4 +397,3 @@ function VistaAdministrativa() {
 }
 
 export default VistaAdministrativa;
-
