@@ -1,3 +1,5 @@
+import { MapPin, XCircle, AlertTriangle, ArrowLeftCircle, Hourglass, Search, ChevronLeft, ChevronRight, Eye, EyeOff, Lock, LockOpen, Inbox } from 'lucide-react';
+
 const MESES_LABEL = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
@@ -142,7 +144,7 @@ function FechaCard({ classes, fecha, selected, maxInscripciones, puedeBloquearFe
           }}
           title={fecha.estaBloqueada ? 'Desbloquear fecha' : 'Bloquear fecha'}
         >
-          <i className={`bi ${fecha.estaBloqueada ? 'bi-unlock-fill' : 'bi-lock-fill'}`} />
+          {fecha.estaBloqueada ? <LockOpen size={16} /> : <Lock size={16} />}
         </button>
       )}
     </div>
@@ -156,7 +158,7 @@ function PuntosVentaModal({ open, puntosVenta, onClose }) {
     <div className="modal-overlay-confirmacion" onClick={onClose}>
       <div className="modal-confirmacion" onClick={(event) => event.stopPropagation()} style={{ maxWidth: 600, maxHeight: '70vh' }}>
         <div className="modal-confirmacion-header" style={{ background: '#007bff' }}>
-          <i className="bi bi-geo-alt-fill" />
+          <MapPin size={16} />
           <h2>PUNTOS DE VENTA</h2>
           <button
             onClick={onClose}
@@ -173,7 +175,7 @@ function PuntosVentaModal({ open, puntosVenta, onClose }) {
               lineHeight: 1,
             }}
           >
-            <i className="bi bi-x-circle-fill" />
+            <XCircle size={16} />
           </button>
         </div>
         <div className="modal-confirmacion-body" style={{ maxHeight: '50vh', overflowY: 'auto', padding: 20 }}>
@@ -195,14 +197,14 @@ function PuntosVentaModal({ open, puntosVenta, onClose }) {
                     gap: 10,
                   }}
                 >
-                  <i className="bi bi-pin-map-fill" style={{ color: '#007bff', fontSize: 20 }} />
+                  <MapPin size={20} color="#007bff" />
                   <span style={{ fontSize: 15, color: '#495057' }}>{punto}</span>
                 </div>
               ))}
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: 40, color: '#6c757d' }}>
-              <i className="bi bi-inbox" style={{ fontSize: 48, marginBottom: 15, display: 'block' }} />
+              <Inbox size={48} style={{marginBottom: 15, display: "block"}} />
               <p>No hay puntos de venta registrados</p>
             </div>
           )}
@@ -222,7 +224,7 @@ function ConfirmModal({ open, onCancel, onConfirm }) {
     <div className="modal-overlay-confirmacion">
       <div className="modal-confirmacion">
         <div className="modal-confirmacion-header">
-          <i className="bi bi-exclamation-triangle-fill" />
+          <AlertTriangle size={16} />
           <h2>ADVERTENCIA</h2>
         </div>
         <div className="modal-confirmacion-body">
@@ -259,7 +261,7 @@ function CafeInscripcionFormView({
       ))}
 
       <button className={classes.back} onClick={onBack}>
-        <i className="bi bi-arrow-left-circle-fill" />
+        <ArrowLeftCircle size={16} />
         <span>Volver</span>
       </button>
 
@@ -290,7 +292,7 @@ function CafeInscripcionFormView({
                 disabled={isBusy || state.documento.trim().length < 6}
                 title="Buscar empleado"
               >
-                {loading.empleado ? <i className="bi bi-hourglass-split" /> : <i className="bi bi-search" />}
+                {loading.empleado ? <Hourglass size={16} /> : <Search size={16} />}
               </button>
             </div>
             {loading.empleado && <span className={classes.loading}>Buscando empleado...</span>}
@@ -314,7 +316,7 @@ function CafeInscripcionFormView({
             <div className={`${classes.employeeContainer} ${state.mostrarInfoEmpleado ? 'expanded' : ''}`}>
               <button type="button" className={classes.toggleInfo} onClick={actions.toggleInfoEmpleado}>
                 <span>{state.mostrarInfoEmpleado ? 'Ocultar informacion' : 'Mostrar informacion'}</span>
-                <i className={`bi ${state.mostrarInfoEmpleado ? 'bi-eye-slash' : 'bi-eye'}`} />
+                {state.mostrarInfoEmpleado ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
 
               {state.mostrarInfoEmpleado && (
@@ -400,7 +402,7 @@ function CafeInscripcionFormView({
                             fontSize: 16,
                           }}
                         >
-                          <i className="bi bi-geo-alt-fill" />
+                          <MapPin size={16} />
                         </button>
                       )}
                     </div>
@@ -424,7 +426,7 @@ function CafeInscripcionFormView({
                   onClick={() => actions.setPaginaActual((prev) => Math.max(0, prev - 1))}
                   disabled={state.paginaActual === 0}
                 >
-                  <i className="bi bi-chevron-left" />
+                  <ChevronLeft size={16} />
                 </button>
 
                 <div className={classes.fechasGrid}>
@@ -448,7 +450,7 @@ function CafeInscripcionFormView({
                   onClick={() => actions.setPaginaActual((prev) => Math.min(state.totalPaginas - 1, prev + 1))}
                   disabled={state.paginaActual >= state.totalPaginas - 1}
                 >
-                  <i className="bi bi-chevron-right" />
+                  <ChevronRight size={16} />
                 </button>
               </div>
 
@@ -485,3 +487,6 @@ function CafeInscripcionFormView({
 }
 
 export default CafeInscripcionFormView;
+
+
+

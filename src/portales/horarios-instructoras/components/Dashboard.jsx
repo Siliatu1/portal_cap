@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Table, Tag, Button, Modal, Space, Card, Tooltip } from 'antd';
-import { EyeOutlined, DownloadOutlined, EditOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
+import { Eye, Download, Edit, ChevronDown, ChevronUp } from 'lucide-react';
 import 'antd/dist/reset.css';
 import '../styles/Dashboard.css';
 import DashboardEditModal from './DashboardEditModal';
@@ -181,11 +181,11 @@ function Dashboard() {
                   render: (_, record) => (
                     <Space size="small">
                       <Tooltip title="Ver detalle">
-                        <Button type="text" icon={<EyeOutlined />}
+                        <Button type="text" icon={<Eye size={16} />}
                           onClick={() => actions.verSemana(record)} className="dashboard-action-btn dashboard-action-btn--view" />
                       </Tooltip>
                       <Tooltip title="Descargar PDF">
-                        <Button type="text" icon={<DownloadOutlined />}
+                        <Button type="text" icon={<Download size={16} />}
                           onClick={() => handleDescargarPDF(record)} className="dashboard-action-btn dashboard-action-btn--download" />
                       </Tooltip>
                     </Space>
@@ -218,7 +218,7 @@ function Dashboard() {
                             render: (_, detalle) => (
                               <Space size="small">
                                 <Tooltip title="Editar">
-                                  <Button type="text" size="small" icon={<EditOutlined />}
+                                  <Button type="text" size="small" icon={<Edit size={16} />}
                                     onClick={() => actions.editarActividad(detalle)}
                                     className="dashboard-action-btn dashboard-action-btn--edit" />
                                 </Tooltip>
@@ -237,8 +237,8 @@ function Dashboard() {
                 ),
                 expandIcon: ({ expanded, onExpand, record }) =>
                   expanded
-                    ? <UpOutlined   onClick={e => onExpand(record, e)} className="dashboard-expand-icon" />
-                    : <DownOutlined onClick={e => onExpand(record, e)} className="dashboard-expand-icon" />,
+                    ? <ChevronUp   onClick={e => onExpand(record, e)} className="dashboard-expand-icon" />
+                    : <ChevronDown onClick={e => onExpand(record, e)} className="dashboard-expand-icon" />,
                 onExpand:        (expanded, record) => actions.setFilaExpandida(expanded ? record.key : null),
                 expandedRowKeys: filaExpandida ? [filaExpandida] : [],
               }}
@@ -370,4 +370,6 @@ function Dashboard() {
 }
 
 export default Dashboard;
+
+
 

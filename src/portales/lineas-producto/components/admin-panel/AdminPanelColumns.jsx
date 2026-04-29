@@ -1,5 +1,5 @@
 import { Button, Popconfirm, Space } from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { Trash2, Plus, AlertTriangle, User } from 'lucide-react';
 import { ROLES_VER_ESTADO_OBS, formatIsoDate } from '../adminPanel.helpers';
 
 const placeholderSvg = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjZTBlMGUwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk5OTk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPj88L3RleHQ+PC9zdmc+';
@@ -41,7 +41,7 @@ function FotoCell({ cedula, fotosCache }) {
         color: '#999',
       }}
     >
-      <i className="bi bi-person-circle" />
+      <User size={24} color="#999" />
     </div>
   );
 }
@@ -72,7 +72,7 @@ function FechaToderaCell({ text, record }) {
     >
       {formatIsoDate(text)}
       {esAlerta && (
-        <i className="bi bi-exclamation-triangle-fill" style={{ marginLeft: 6, fontSize: 12 }} />
+        <AlertTriangle size={12} style={{ marginLeft: 6, display: 'inline' }} />
       )}
     </span>
   );
@@ -126,7 +126,7 @@ function CategoriaGestionCell({ asignacion, pdvId, categoria, onAgregar, onElimi
         <Button
           type="primary"
           shape="circle"
-          icon={<PlusOutlined />}
+          icon={<Plus size={16} />}
           size="small"
           onClick={() => onAgregar(pdvId, categoria)}
         />
@@ -145,7 +145,7 @@ function CategoriaGestionCell({ asignacion, pdvId, categoria, onAgregar, onElimi
         cancelText="Cancelar"
         okButtonProps={{ danger: true }}
       >
-        <Button danger size="small" icon={<DeleteOutlined />} style={{ padding: '4px 8px', minWidth: 'auto' }} />
+        <Button danger size="small" icon={<Trash2 size={16} />} style={{ padding: '4px 8px', minWidth: 'auto' }} />
       </Popconfirm>
     </div>
   );
@@ -209,7 +209,7 @@ export function buildColumnsInscripciones({ fotosCache, puedeEliminar, onElimina
               cancelText="Cancelar"
               okButtonProps={{ danger: true }}
             >
-              <Button danger icon={<DeleteOutlined />} size="small" title="Eliminar" />
+              <Button danger icon={<Trash2 size={16} />} size="small" title="Eliminar" />
             </Popconfirm>
           )}
         </Space>
@@ -306,7 +306,7 @@ export function buildColumnsTodera({ fotosCache, puedeEliminar, onEliminar, carg
               cancelText="Cancelar"
               okButtonProps={{ danger: true }}
             >
-              <Button danger icon={<DeleteOutlined />} size="small" title="Eliminar" />
+              <Button danger icon={<Trash2 size={16} />} size="small" title="Eliminar" />
             </Popconfirm>
           )}
         </Space>
@@ -362,3 +362,6 @@ export function buildColumnsGestionInstructoras({ onAgregar, onEliminar }) {
     },
   ];
 }
+
+
+

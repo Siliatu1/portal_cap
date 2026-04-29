@@ -1,3 +1,5 @@
+import { Coffee, Store, FileText, Edit, Book, ArrowLeft, LogOut, CheckCircle2 } from 'lucide-react';
+
 function AdminPanelHeader({ permissions, onActions }) {
   const {
     esAccesoDual,
@@ -19,50 +21,50 @@ function AdminPanelHeader({ permissions, onActions }) {
         {esAccesoDual ? (
           <>
             <button className="header-nav-btn" onClick={onActions.abrirFormularioEscuelaCafe}>
-              <i className="bi bi-cup-hot" />
+              <Coffee size={20} />
               <span>Escuela Cafe HEL</span>
             </button>
             <button className="header-nav-btn" onClick={onActions.abrirFormularioPuntoVenta}>
-              <i className="bi bi-shop-window" />
+              <Store size={20} />
               <span>Escuela Cafe PDV</span>
             </button>
           </>
         ) : esRolPuntoVenta ? (
           <>
             <button className="header-nav-btn" onClick={onActions.abrirFormularioPuntoVenta}>
-              <i className="bi bi-cup-hot" />
+              <Coffee size={20} />
               <span>Escuela del Cafe</span>
             </button>
             <button className="header-nav-btn" onClick={onActions.abrirFormularioEvaluacionTodera}>
-              <i className="bi bi-clipboard-check" />
+              <CheckCircle2 size={20} />
               <span>Evaluacion Toderas</span>
             </button>
           </>
         ) : esRolHeladeria ? (
           <button className="header-nav-btn" onClick={onActions.abrirFormularioEscuelaCafe}>
-            <i className="bi bi-pencil-square" />
+            <Edit size={20} />
             <span>Inscripcion Aqui</span>
           </button>
         ) : (
           <button className="header-nav-btn" onClick={onActions.registrarPersona}>
-            <i className="bi bi-book" />
+            <Book size={20} />
             <span>Registrar Estudiante</span>
           </button>
         )}
 
         {puedeVerTodera && !esRolPuntoVenta && (
           <button className="header-nav-btn" onClick={onActions.abrirFormularioEvaluacionTodera}>
-            <i className="bi bi-clipboard-check" />
+            <CheckCircle2 size={20} />
             <span>Evaluacion Todera</span>
           </button>
         )}
 
         <button className="btn-nav-header" onClick={onActions.navigateBack}>
-          <i className="bi bi-arrow-left" />
+          <ArrowLeft size={20} />
           <span>Volver</span>
         </button>
         <button className="btn-nav-header" onClick={onActions.logout}>
-          <i className="bi bi-box-arrow-right" />
+          <LogOut size={20} />
         </button>
       </div>
     </header>
@@ -70,3 +72,5 @@ function AdminPanelHeader({ permissions, onActions }) {
 }
 
 export default AdminPanelHeader;
+
+

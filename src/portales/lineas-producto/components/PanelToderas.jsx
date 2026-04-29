@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 import '../styles/panel_toderas.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
 import { Button, Input, Modal, Switch, Table } from 'antd';
-import { DownloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { Download, Search, User, AlertTriangle, ArrowLeftCircle, Info, CheckCircle2, XCircle, MessageCircle } from 'lucide-react';
 import { formatIsoDate } from './adminPanel.helpers';
 import { usePanelToderasController } from '../hooks/usePanelToderasController';
 
@@ -26,7 +25,7 @@ function FotoCell({ foto }) {
 
   return (
     <div style={{ width: 50, height: 50, borderRadius: '50%', backgroundColor: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#999' }}>
-      <i className="bi bi-person-circle" />
+      <User size={24} color="#999" />
     </div>
   );
 }
@@ -55,7 +54,7 @@ function FechaAlertaCell({ dia, record }) {
       title={esAlerta ? `Han pasado ${diasTranscurridos} dias sin evaluar` : ''}
     >
       {formatIsoDate(dia) || 'Sin fecha'}
-      {esAlerta && <i className="bi bi-exclamation-triangle-fill" style={{ marginLeft: 6, fontSize: 12 }} />}
+      {esAlerta && <AlertTriangle size={12} style={{ marginLeft: 6, display: 'inline' }} />}
     </span>
   );
 }
@@ -136,7 +135,7 @@ function PanelToderas() {
       render: (_, record) => (
         <Button
           type={record.observacion ? 'primary' : 'default'}
-          icon={<i className={`bi ${record.observacion ? 'bi-chat-left-text-fill' : 'bi-chat-left-text'}`} />}
+          icon={record.observacion ? <MessageCircle size={16} /> : <MessageCircle size={16} />}
           onClick={() => actions.abrirModalObservacion(record)}
           style={{
             backgroundColor: record.observacion ? '#3d2817' : undefined,
@@ -153,12 +152,12 @@ function PanelToderas() {
     return (
       <div className="acceso-denegado-container">
         <div className="acceso-denegado-card">
-          <i className="bi bi-shield-x" />
+          <AlertCircle size={48} />
           <h1>Acceso Denegado</h1>
           <p>No tienes permisos para acceder a este panel.</p>
           <p>Solo instructoras autorizadas pueden controlar la asistencia de la evaluacion todera.</p>
           <button onClick={actions.logout} className="btn-volver">
-            <i className="bi bi-arrow-left-circle" /> Volver
+            <ArrowLeftCircle size={20} /> Volver
           </button>
         </div>
       </div>
@@ -190,7 +189,7 @@ function PanelToderas() {
           <h1 className="admin-title">Hola, {user.nombreUsuario}</h1>
           <h2 className="admin-subtitle">Panel Lineas de Producto C&W</h2>
           <p className="admin-info" style={{ backgroundColor: '#fff7e6', padding: '12px 20px', borderRadius: 8, border: '1px solid #ffd591', marginBottom: 20, color: '#d46b08' }}>
-            <i className="bi bi-info-circle-fill" style={{ marginRight: 8 }} />
+            <Info size={16} style={{ marginRight: 8, display: 'inline' }} />
             Mostrando solo tus estudiantes asignados
           </p>
 
@@ -201,7 +200,7 @@ function PanelToderas() {
                 <label className="filter-label">Cedula</label>
                 <Input
                   placeholder="Buscar por cedula"
-                  prefix={<SearchOutlined />}
+                  prefix={<Search size={16} />}
                   value={filters.cedula}
                   onChange={(event) => actions.updateFiltros({ cedula: event.target.value })}
                   allowClear
@@ -211,7 +210,7 @@ function PanelToderas() {
                 <label className="filter-label">Punto de Venta</label>
                 <Input
                   placeholder="Buscar por punto de venta"
-                  prefix={<SearchOutlined />}
+                  prefix={<Search size={16} />}
                   value={filters.puntoVenta}
                   onChange={(event) => actions.updateFiltros({ puntoVenta: event.target.value })}
                   allowClear
@@ -220,10 +219,10 @@ function PanelToderas() {
             </div>
 
             <div className="filters-actions">
-              <Button onClick={actions.limpiarFiltros} icon={<i className="bi bi-x-circle" />}>
+              <Button onClick={actions.limpiarFiltros} icon={<XCircle size={16} />}>
                 Limpiar Filtros
               </Button>
-              <Button type="primary" icon={<DownloadOutlined />} onClick={actions.exportarExcel} style={{ backgroundColor: '#52B788', borderColor: '#52B788' }}>
+              <Button type="primary" icon={<Download size={16} />} onClick={actions.exportarExcel} style={{ backgroundColor: '#52B788', borderColor: '#52B788' }}>
                 Exportar Excel
               </Button>
             </div>
@@ -233,7 +232,7 @@ function PanelToderas() {
             <div className="table-header">
               <div className="table-title">
                 <div className="table-icon">
-                  <i className="bi bi-clipboard-check" />
+                  <CheckCircle2 size={20} />
                 </div>
                 <strong>Evaluacion Todera</strong>
               </div>
@@ -287,3 +286,5 @@ function PanelToderas() {
 }
 
 export default PanelToderas;
+
+

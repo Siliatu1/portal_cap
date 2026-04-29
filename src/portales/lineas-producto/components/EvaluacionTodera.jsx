@@ -1,5 +1,5 @@
 import '../styles/formulario_inscripcion.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
+
 import EvaluacionToderaFormView from './forms/EvaluacionToderaFormView';
 import { useEvaluacionToderaForm } from '../hooks/useEvaluacionToderaForm';
 
@@ -15,3 +15,5 @@ function EvaluacionTodera({ onBack, onSubmit, coordinadoraData }) {
 }
 
 export default EvaluacionTodera;
+
+

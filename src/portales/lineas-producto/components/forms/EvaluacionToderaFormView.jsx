@@ -1,4 +1,5 @@
 import { Select } from 'antd';
+import { AlertTriangle, ArrowLeftCircle, Hourglass, Search, XCircle, CheckCircle } from 'lucide-react';
 
 const opcionesCargoEvaluar = [
   {
@@ -67,7 +68,7 @@ function ConfirmModal({ open, onCancel, onConfirm }) {
     <div className="modal-overlay-confirmacion">
       <div className="modal-confirmacion">
         <div className="modal-confirmacion-header">
-          <i className="bi bi-exclamation-triangle-fill" />
+          <AlertTriangle size={16} />
           <h2>ADVERTENCIA</h2>
         </div>
         <div className="modal-confirmacion-body">
@@ -93,7 +94,7 @@ function EvaluacionToderaFormView({ state, loading, actions, onBack }) {
       <div className="decoration-circle circle-3" />
 
       <button className="back-button-outside" onClick={onBack}>
-        <i className="bi bi-arrow-left-circle-fill" />
+        <ArrowLeftCircle size={16} />
         <span>Volver</span>
       </button>
 
@@ -101,7 +102,7 @@ function EvaluacionToderaFormView({ state, loading, actions, onBack }) {
         <h1 className="inscripcion-subtitle">EVALUACION TODERAS</h1>
 
         <div className="alerta-evaluacion-box">
-          <i className="bi bi-exclamation-triangle-fill" />
+          <AlertTriangle size={16} />
           <span>SOLO SE PUEDE INSCRIBIR SI YA ESTA 100% LISTA PARA LA EVALUACION</span>
         </div>
 
@@ -128,7 +129,7 @@ function EvaluacionToderaFormView({ state, loading, actions, onBack }) {
                 onClick={actions.buscarEmpleado}
                 disabled={isBusy || state.documento.trim().length < 6}
               >
-                {loading.empleado ? <i className="bi bi-hourglass-split" /> : <i className="bi bi-search" />}
+                {loading.empleado ? <Hourglass size={16} /> : <Search size={16} />}
               </button>
             </div>
             {loading.empleado && <span className="loading-indicator">Buscando empleado...</span>}
@@ -222,7 +223,7 @@ function EvaluacionToderaFormView({ state, loading, actions, onBack }) {
                   label={(
                     <>
                       NOMBRE DE LA INSTRUCTORA
-                      {loading.instructora && <i className="bi bi-hourglass-split" style={{ marginLeft: 8 }} />}
+                      {loading.instructora && <Hourglass size={16} style={{marginLeft: 8}} />}
                     </>
                   )}
                   name="nombreLider"
@@ -235,16 +236,16 @@ function EvaluacionToderaFormView({ state, loading, actions, onBack }) {
 
               <div className="button-container">
                 <button type="button" className="button-secondary" onClick={actions.limpiarFormulario} disabled={isBusy}>
-                  <i className="bi bi-x-circle" /> Limpiar
+                  <XCircle size={16} /> Limpiar
                 </button>
                 <button type="submit" className="button-primary" disabled={isBusy}>
                   {loading.formulario ? (
                     <>
-                      <i className="bi bi-hourglass-split" /> Guardando...
+                      <Hourglass size={16} /> Guardando...
                     </>
                   ) : (
                     <>
-                      <i className="bi bi-check-circle" /> Registrar Evaluacion
+                      <CheckCircle size={16} /> Registrar Evaluacion
                     </>
                   )}
                 </button>
@@ -264,3 +265,6 @@ function EvaluacionToderaFormView({ state, loading, actions, onBack }) {
 }
 
 export default EvaluacionToderaFormView;
+
+
+

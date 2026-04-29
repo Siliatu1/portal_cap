@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, DatePicker, Modal, Select, Space } from 'antd';
-import { DownloadOutlined, FileExcelOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
+import { Download, FileText, ArrowLeft, ArrowRight } from 'lucide-react';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import 'antd/dist/reset.css';
@@ -286,7 +286,7 @@ function VistaAdministrativa() {
 
         <Card className="filters-card vista-admin-card-gap">
           <div className="vista-admin-week-nav">
-            <Button icon={<LeftOutlined />} onClick={() => setSemanaLunes((prev) => shiftWeek(prev, -7))}>Anterior</Button>
+            <Button icon={<ArrowLeft size={16} />} onClick={() => setSemanaLunes((prev) => shiftWeek(prev, -7))}>Anterior</Button>
             <DatePicker
               value={dayjs(semanaLunes)}
               onChange={(date) => date && setSemanaLunes(toMonday(date.toDate()))}
@@ -296,7 +296,7 @@ function VistaAdministrativa() {
               allowClear={false}
             />
             <span className="vista-admin-week-label">{weekRangeLabel}</span>
-            <Button onClick={() => setSemanaLunes((prev) => shiftWeek(prev, 7))}>Siguiente <RightOutlined /></Button>
+            <Button onClick={() => setSemanaLunes((prev) => shiftWeek(prev, 7))}>Siguiente <ArrowRight size={16} /></Button>
           </div>
 
           <Space size="large" wrap className="vista-admin-filters-layout">
@@ -329,7 +329,7 @@ function VistaAdministrativa() {
             <Space>
               <Button
                 type="primary"
-                icon={<FileExcelOutlined />}
+                icon={<FileText size={16} />}
                 onClick={handleDescargarExcel}
                 className="vista-admin-btn vista-admin-btn--excel"
               >
@@ -337,7 +337,7 @@ function VistaAdministrativa() {
               </Button>
               <Button
                 type="primary"
-                icon={<DownloadOutlined />}
+                icon={<Download size={16} />}
                 onClick={handleDescargarPDF}
                 className="vista-admin-btn vista-admin-btn--pdf"
               >
@@ -397,3 +397,5 @@ function VistaAdministrativa() {
 }
 
 export default VistaAdministrativa;
+
+

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Button, Input, Space } from 'antd';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { Plus, Search } from 'lucide-react';
 import { buildColumnsGestionInstructoras } from './AdminPanelColumns';
 import TableShell from './TableShell';
 
@@ -25,7 +25,7 @@ function GestionInstructorasSection({
         <Space wrap size="middle" style={{ width: '100%' }}>
           <Input
             placeholder="Buscar punto de venta..."
-            prefix={<SearchOutlined />}
+            prefix={<Search size={16} />}
             value={filtros.puntoVenta}
             onChange={(event) => onActions.updateFiltrosGestion({ puntoVenta: event.target.value })}
             style={{ width: 280 }}
@@ -33,7 +33,7 @@ function GestionInstructorasSection({
 
           <Button
             type="primary"
-            icon={<PlusOutlined />}
+            icon={<Plus size={16} />}
             onClick={onActions.abrirModalNuevaInstructora}
             style={{ background: '#52B788', borderColor: '#52B788' }}
           >
@@ -62,3 +62,5 @@ function GestionInstructorasSection({
 }
 
 export default GestionInstructorasSection;
+
+

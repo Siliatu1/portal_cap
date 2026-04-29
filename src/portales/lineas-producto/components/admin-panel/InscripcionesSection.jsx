@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Button, Input, Select, Space } from 'antd';
-import { DownloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { Download, Search } from 'lucide-react';
 import { formatIsoDate } from '../adminPanel.helpers';
 import { buildColumnsInscripciones } from './AdminPanelColumns';
 import TableShell from './TableShell';
@@ -30,7 +30,7 @@ function InscripcionesSection({
         <Space wrap size="middle" style={{ width: '100%' }}>
           <Input
             placeholder="Buscar por cedula..."
-            prefix={<SearchOutlined />}
+            prefix={<Search size={16} />}
             value={filtros.cedula}
             onChange={(event) => onActions.updateFiltros({ cedula: event.target.value })}
             style={{ width: 200 }}
@@ -63,7 +63,7 @@ function InscripcionesSection({
           <Button onClick={onActions.limpiarFiltros}>Limpiar</Button>
           <Button
             type="primary"
-            icon={<DownloadOutlined />}
+            icon={<Download size={16} />}
             onClick={onActions.exportarInscripciones}
             style={{ background: '#52B788', borderColor: '#52B788' }}
           >
@@ -89,3 +89,5 @@ function InscripcionesSection({
 }
 
 export default InscripcionesSection;
+
+

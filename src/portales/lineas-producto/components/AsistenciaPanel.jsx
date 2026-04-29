@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 import '../styles/admin_panel.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
 import { Button, Input, Select, Space, Switch, Table } from 'antd';
-import { DownloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { Download, Search, AlertCircle, ArrowLeftCircle, LogOut, ArrowLeft, User } from 'lucide-react';
 import { formatIsoDate } from './adminPanel.helpers';
 import { useAsistenciaPanelController } from '../hooks/useAsistenciaPanelController';
 
@@ -27,7 +26,7 @@ function FotoCell({ cedula, fotosCache }) {
 
   return (
     <div style={{ width: 50, height: 50, borderRadius: '50%', backgroundColor: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#999' }}>
-      <i className="bi bi-person-circle" />
+      <User size={24} color="#999" />
     </div>
   );
 }
@@ -86,12 +85,12 @@ function AsistenciaPanel() {
     return (
       <div className="acceso-denegado-container">
         <div className="acceso-denegado-card">
-          <i className="bi bi-shield-x" />
+          <AlertCircle size={48} />
           <h1>Acceso Denegado</h1>
           <p>No tienes permisos para acceder a este panel.</p>
           <p>Solo usuarios autorizados pueden controlar la asistencia de la Escuela del Cafe.</p>
           <button onClick={actions.logout} className="btn-volver">
-            <i className="bi bi-arrow-left-circle" /> Volver
+            <ArrowLeftCircle size={20} /> Volver
           </button>
         </div>
       </div>
@@ -109,11 +108,11 @@ function AsistenciaPanel() {
         </div>
         <div className="header-right">
           <button className="btn-back" onClick={actions.logout} title="Cerrar sesion">
-            <i className="bi bi-box-arrow-right" />
+            <LogOut size={20} />
             <span>Cerrar sesion</span>
           </button>
           <button className="btn-back" onClick={actions.volverMenu} title="Volver al inicio">
-            <i className="bi bi-arrow-left" />
+            <ArrowLeft size={20} />
             <span>Volver</span>
           </button>
         </div>
@@ -129,7 +128,7 @@ function AsistenciaPanel() {
             <Space wrap size="middle" style={{ width: '100%' }}>
               <Input
                 placeholder="Buscar por cedula"
-                prefix={<SearchOutlined />}
+                prefix={<Search size={16} />}
                 value={filters.cedula}
                 onChange={(event) => actions.updateFiltros({ cedula: event.target.value })}
                 style={{ width: 200 }}
@@ -155,7 +154,7 @@ function AsistenciaPanel() {
                 filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
               />
               <Button onClick={actions.limpiarFiltros}>Limpiar</Button>
-              <Button type="primary" icon={<DownloadOutlined />} onClick={actions.exportarExcel} style={{ background: '#9cbf8b' }}>
+              <Button type="primary" icon={<Download size={16} />} onClick={actions.exportarExcel} style={{ background: '#9cbf8b' }}>
                 Exportar a Excel
               </Button>
             </Space>
@@ -186,3 +185,5 @@ function AsistenciaPanel() {
 }
 
 export default AsistenciaPanel;
+
+

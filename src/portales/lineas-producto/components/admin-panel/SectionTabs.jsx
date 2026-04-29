@@ -30,3 +30,5 @@ function SectionTabs({ activeSection, permissions, onChange }) {
 }
 
 export default SectionTabs;
+
+

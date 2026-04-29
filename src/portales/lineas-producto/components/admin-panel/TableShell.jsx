@@ -1,4 +1,5 @@
 import { Table } from 'antd';
+import { RotateCw } from 'lucide-react';
 
 const refreshButtonStyle = {
   marginLeft: 12,
@@ -18,6 +19,7 @@ const refreshButtonStyle = {
 function TableShell({
   title,
   iconClass,
+  icon,
   total,
   filteredTotal,
   onRefresh,
@@ -33,14 +35,14 @@ function TableShell({
     <div className="table-card">
       <div className="table-header">
         <div className="table-title">
-          {iconClass && (
+          {(iconClass || icon) && (
             <div className="table-icon">
-              <i className={iconClass} />
+              {icon ? icon : <i className={iconClass} />}
             </div>
           )}
           <strong>{title}</strong>
           <button onClick={onRefresh} style={refreshButtonStyle} title="Refrescar">
-            <i className="bi bi-arrow-clockwise" style={{ color: '#6F4E37', fontSize: 18 }} />
+            <RotateCw size={18} color="#6F4E37" />
           </button>
         </div>
         <span className="table-count">
@@ -65,3 +67,5 @@ function TableShell({
 }
 
 export default TableShell;
+
+

@@ -1,5 +1,5 @@
 import { Button, Empty, Table } from 'antd';
-import { EditOutlined } from '@ant-design/icons';
+import { Edit } from 'lucide-react';
 import { DIAS_NOMBRES, ROW_COLORS } from './vistaAdministrativa.helpers';
 
 function VistaAdministrativaTable({ dataSource, fechasSemana, onEditHorario }) {
@@ -62,7 +62,7 @@ function VistaAdministrativaTable({ dataSource, fechasSemana, onEditHorario }) {
                   <Button
                     type="text"
                     size="small"
-                    icon={<EditOutlined />}
+                    icon={<Edit size={16} />}
                     onClick={() => onEditHorario(horario)}
                     className="vista-admin-edit-button"
                   />
@@ -102,3 +102,4 @@ function VistaAdministrativaTable({ dataSource, fechasSemana, onEditHorario }) {
 }
 
 export default VistaAdministrativaTable;
+

@@ -173,3 +173,5 @@ function InstructorasModals({ forms, data, loading, onActions }) {
 }
 
 export default InstructorasModals;
+
+

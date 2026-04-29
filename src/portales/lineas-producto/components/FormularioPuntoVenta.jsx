@@ -1,5 +1,5 @@
 import '../styles/formulario_punto_venta.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
+
 import CafeInscripcionFormView from './forms/CafeInscripcionFormView';
 import { useCafeInscripcionForm } from '../hooks/useCafeInscripcionForm';
 
@@ -25,3 +25,5 @@ function FormularioPuntoVenta({ onBack, onSubmit, coordinadoraData }) {
 }
 
 export default FormularioPuntoVenta;
+
+

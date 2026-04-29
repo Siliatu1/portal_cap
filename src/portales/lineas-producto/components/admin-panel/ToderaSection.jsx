@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Button, Input, Select, Space } from 'antd';
-import { DownloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { Download, Search, Filter, CheckCircle2 } from 'lucide-react';
 import { formatIsoDate } from '../adminPanel.helpers';
 import { buildColumnsTodera } from './AdminPanelColumns';
 import TableShell from './TableShell';
@@ -30,12 +30,12 @@ function ToderaSection({
     <>
       <div className="filters-container">
         <h3 className="filters-title">
-          <i className="bi bi-funnel-fill" /> FILTROS EVALUACIONES TODERA
+          <Filter size={16} /> FILTROS EVALUACIONES TODERA
         </h3>
         <Space wrap size="middle" style={{ width: '100%' }}>
           <Input
             placeholder="Buscar por cedula..."
-            prefix={<SearchOutlined />}
+            prefix={<Search size={16} />}
             value={filtros.cedula}
             onChange={(event) => onActions.updateFiltrosTodera({ cedula: event.target.value })}
             style={{ width: 200 }}
@@ -83,7 +83,7 @@ function ToderaSection({
           <Button onClick={onActions.limpiarFiltrosTodera}>Limpiar</Button>
           <Button
             type="primary"
-            icon={<DownloadOutlined />}
+            icon={<Download size={16} />}
             onClick={onActions.exportarTodera}
             style={{ background: '#52B788', borderColor: '#52B788' }}
           >
@@ -94,7 +94,7 @@ function ToderaSection({
 
       <TableShell
         title="Evaluaciones Todera"
-        iconClass="bi bi-clipboard-check"
+        icon={<CheckCircle2 size={20} />}
         total={data.inscripcionesTodera.length}
         filteredTotal={data.dataFiltradaTodera.length}
         onRefresh={onActions.refreshTodera}
@@ -110,3 +110,5 @@ function ToderaSection({
 }
 
 export default ToderaSection;
+
+

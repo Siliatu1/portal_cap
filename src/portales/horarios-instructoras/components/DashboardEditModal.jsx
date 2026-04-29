@@ -1,5 +1,5 @@
 import { Button, Form, Input, Modal, Select, Space } from 'antd';
-import { DownOutlined, UpOutlined } from '@ant-design/icons';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   MOTIVOS_BASICOS,
   MOTIVOS_LABELS,
@@ -94,7 +94,7 @@ function DashboardEditModal({
                 </Button>
               ))}
 
-            <Button type="link" onClick={onToggleMotivos} icon={showMoreMotivos ? <UpOutlined /> : <DownOutlined />}>
+            <Button type="link" onClick={onToggleMotivos} icon={showMoreMotivos ? <ChevronUp /> : <ChevronDown />}>
               {showMoreMotivos ? 'Ver menos' : 'Ver más opciones'}
             </Button>
           </Space>
@@ -127,3 +127,4 @@ function DashboardEditModal({
 }
 
 export default DashboardEditModal;
+

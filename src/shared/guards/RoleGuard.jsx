@@ -24,3 +24,4 @@ const RoleGuard = ({ allowedRoles, children, redirectTo = '/menu' }) => {
 };
 
 export default RoleGuard;
+
