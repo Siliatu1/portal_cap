@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.6",
-    "antd": "^6.3.6",
+    "antd": "^6.3.7",
     "axios": "^1.15.2",
     "bootstrap-icons": "^1.13.1",
     "dayjs": "^1.11.20",
