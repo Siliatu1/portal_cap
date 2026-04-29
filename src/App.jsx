@@ -13,6 +13,7 @@ import RoleGuard from './shared/guards/RoleGuard';
 import AdminPanel from './portales/lineas-producto/components/AdminPanel';
 import AsistenciaPanel from './portales/lineas-producto/components/AsistenciaPanel';
 import PanelToderas from './portales/lineas-producto/components/PanelToderas';
+import LineasProductoFormRoute from './portales/lineas-producto/components/LineasProductoFormRoute';
 
 // Portal Horarios Instructoras
 import Dashboard from './portales/horarios-instructoras/components/Dashboard';
@@ -80,6 +81,15 @@ function AppRoutes() {
             element={
               <ProtectedRoute fallback={loginElement}>
                 <PanelToderas />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/portal/lineas-producto/formulario/:tipo" 
+            element={
+              <ProtectedRoute fallback={loginElement}>
+                <LineasProductoFormRoute />
               </ProtectedRoute>
             } 
           />
